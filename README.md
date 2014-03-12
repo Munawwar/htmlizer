@@ -10,7 +10,7 @@ Dependencies:
 - On NodeJS, jsdom will also be required.
 
 Usage
-=====
+-----
 
 Render template as HTML string:
 ```
@@ -23,7 +23,10 @@ Render template as DocumentFragment:
 ```
 
 
-Supports following syntaxes (with example):
+Template syntax
+-----
+Syntax is similar to KnockoutJS (in fact supports a subset of Knockout templates).
+
 ```
 (new Htmlizer('<span data-bind="text: mytext"></span>')).toString({mytext: 'test'})
 
@@ -43,10 +46,10 @@ Output: <span class="btn btn-default">test</span>
   <div>\
     <!-- if: count -->\
       <div id="results"></div>\
-    <!-- end if -->\
-    <!-- if !count -->\
-      No results to display.\
     <!-- /if -->\
+    <!-- ko if: !count -->\
+      No results to display.\
+    <!-- /ko -->\
   </div>')).toString({count: 0});`
 
 Output: <div>No results to display.</div>
