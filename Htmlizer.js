@@ -68,24 +68,77 @@
         "if": new RegExp("(?:(ko[ ]+if|if):(.+))")
     };
 
-    function Htmlizer(templateStr) {
-        this.frag = document.createDocumentFragment();
-
-        this.ignoreIf = false; //nested ifs are not supported. So a boolean is ok.
-
-        $.parseHTML(templateStr).forEach(function (node) {
-            this.frag.appendChild(node);
-        }, this);
+    /**
+     * @param {String|DocumentFragment} template
+     */
+    function Htmlizer(template) {
+        if (typeof template === 'string') {
+            this.frag = document.createDocumentFragment();
+            $.parseHTML(template).forEach(function (node) {
+                this.frag.appendChild(node);
+            }, this);
+        } else { //assuming DocumentFragment
+            this.frag = template;
+        }
     }
 
     Htmlizer.prototype = {
         toDocumentFragment: function (data) {
             var frag = this.frag.cloneNode(true);
 
-            var toRemove = []; //use this to remove nodes within if statement that are false.
-            traverse(frag, frag, function (el, isOpenTag) {
+            var stack = [], //Keep track of ifs and fors
+                toRemove = []; //use this to remove nodes within if statement that are false.
+            traverse(frag, frag, function (node, isOpenTag) {
                 if (isOpenTag) {
-                    return evaluate.call(this, el, data, toRemove);
+                    if (stack[0] && stack[0].key === 'if' && !stack[0].val) {
+                        toRemove.push(node);
+                        return 'continue';
+                    }
+
+                    var val;
+                    if (node.nodeType === 1) { //element
+                        var bindOpts = node.getAttribute('data-bind'), attributes;
+                        if (bindOpts) {
+                            bindOpts = parseObjectLiteral(bindOpts);
+                            bindOpts.forEach(function (opt) {
+                                if (opt[0] === 'text' && regexMap.DotNotation.test(opt[1])) {
+                                    val = saferEval(opt[1], data);
+                                    if (val !== undefined) {
+                                        node.appendChild(document.createTextNode(val));
+                                    }
+                                }
+                                if (opt[0] === 'attr') {
+                                    attributes = parseObjectLiteral(opt[1].slice(1, -1));
+                                    attributes.forEach(function (tuple) {
+                                        if (regexMap.DotNotation.test(tuple[1])) {
+                                            val = saferEval(tuple[1], data);
+                                            if (val) {
+                                                node.setAttribute(tuple[0], val);
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                            node.removeAttribute('data-bind');
+                        }
+                    }
+
+                    //HTML comment node
+                    if (node.nodeType === 8) {
+                        //Process if statement
+                        var stmt = node.data.trim(), match;
+                        if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
+                            val = saferEval(match[2], data);
+                            stack.unshift({
+                                key: 'if',
+                                val: val
+                            });
+                            toRemove.push(node);
+                        } else if ((/^\/(ko|if)/).test(stmt)) {
+                            stack.shift();
+                            toRemove.push(node);
+                        }
+                    }
                 }
             }, this);
 
@@ -125,59 +178,6 @@
             return html;
         }
     };
-
-    /**
-     * Finds valid syntax.
-     */
-    function evaluate(node, data, toRemove) {
-        if (this.ignoreIf) {
-            toRemove.push(node);
-            return 'continue';
-        }
-
-        var val;
-        if (node.nodeType === 1) { //element
-            var bindOpts = node.getAttribute('data-bind'), attributes;
-            if (bindOpts) {
-                bindOpts = parseObjectLiteral(bindOpts);
-                bindOpts.forEach(function (opt) {
-                    if (opt[0] === 'text' && regexMap.DotNotation.test(opt[1])) {
-                        val = saferEval(opt[1], data);
-                        if (val !== undefined) {
-                            node.appendChild(document.createTextNode(val));
-                        }
-                    }
-                    if (opt[0] === 'attr') {
-                        attributes = parseObjectLiteral(opt[1].slice(1, -1));
-                        attributes.forEach(function (tuple) {
-                            if (regexMap.DotNotation.test(tuple[1])) {
-                                val = saferEval(tuple[1], data);
-                                if (val) {
-                                    node.setAttribute(tuple[0], val);
-                                }
-                            }
-                        });
-                    }
-                });
-                node.removeAttribute('data-bind');
-            }
-        }
-
-        //HTML comment node
-        if (node.nodeType === 8) {
-            //Process if statement
-            var stmt = node.data.trim(), match;
-            if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
-                var not = match[2] === '!';
-                val = saferEval(match[2], data);
-                this.ignoreIf = not ? !!val : !val; //ignore the if statement, if condition doesn't satisfy
-                toRemove.push(node);
-            } else if ((/^\/(ko|if)/).test(stmt)) {
-                this.ignoreIf = false;
-                toRemove.push(node);
-            }
-        }
-    }
 
     /**
      * Given a DOM node, this method finds the next tag/node that would appear in the dom.
