@@ -12,14 +12,20 @@ Dependencies:
 Usage
 =====
 
+Render template as HTML string:
 ```
-(new Htmlizer('<tempalte string>')).apply(dataObject);
+(new Htmlizer('<tempalte string>')).toString(dataObject);
+```
+
+Render template as DocumentFragment:
+```
+(new Htmlizer('<tempalte string>')).toDocumentFragment(dataObject);
 ```
 
 
 Supports following syntaxes (with example):
 ```
-(new Htmlizer('<span data-bind="text: mytext"></span>')).apply({mytext: 'test'})
+(new Htmlizer('<span data-bind="text: mytext"></span>')).toString({mytext: 'test'})
 
 Output: <span>test</span>
 ```
@@ -27,7 +33,7 @@ Output: <span>test</span>
 
 ```
 (new Htmlizer('<span data-bind="text: mytext, attr: {class: cls}"></span>'))
-  .apply({mytext: 'test', cls: 'btn btn-default'})
+  .toString({mytext: 'test', cls: 'btn btn-default'})
   
 Output: <span class="btn btn-default">test</span>
 ```
@@ -41,7 +47,7 @@ Output: <span class="btn btn-default">test</span>
     <!-- if !count -->\
       No results to display.\
     <!-- /if -->\
-  </div>')).apply({count: 0});`
+  </div>')).toString({count: 0});`
 
 Output: <div>No results to display.</div>
 ```
