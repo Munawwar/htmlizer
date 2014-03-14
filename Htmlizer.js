@@ -218,10 +218,16 @@
                 //isOpenTag = true;
                 ret = callback.call(scope, node, true, 'firstChild');
             } else if (node.nextSibling && node !== ancestor && ret !== 'break') {
+                if (isOpenTag) {
+                    callback.call(scope, node, false, 'current');
+                }
                 node = node.nextSibling;
                 isOpenTag = true;
                 ret = callback.call(scope, node, true, 'nextSibling');
             } else if (node.parentNode && node !== ancestor) {
+                if (isOpenTag) {
+                    callback.call(scope, node, false, 'current');
+                }
                 //Traverse up the dom till you find an element with nextSibling
                 node = node.parentNode;
                 isOpenTag = false;
