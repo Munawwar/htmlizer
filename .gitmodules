@@ -1,0 +1,3 @@
+[submodule "js-object-literal-parse"]
+	path = js-object-literal-parse
+	url = git@github.com:mbest/js-object-literal-parse.git
