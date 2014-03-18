@@ -171,7 +171,7 @@
                         }
                     }
                 }
-                if (node.nodeType === 3) {
+                if (isOpenTag && node.nodeType === 3) {
                     html += node.nodeValue;
                 }
             }, this);
