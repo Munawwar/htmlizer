@@ -7,13 +7,35 @@
     </head>
     <body>
         <script>
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', 'test.html', false);
-            xhr.send();
+            function fetch(url) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', url, false);
+                xhr.send();
+                return xhr.responseText;
+            }
 
-            console.log((new Htmlizer(xhr.responseText)).toString({
+            //Test 1
+            var text = fetch('test.html');
+            console.log((new Htmlizer(text)).toString({
                 btnText: 'Howdy!',
                 cls: 'btn btn-default' //bootstrap 3 button css class
+            }));
+
+            //Test 2
+            var text = fetch('test2.html');
+            console.log((new Htmlizer(text)).toString({
+                items: [{
+                    name: 'item1',
+                    subItems: [{
+                        name: 'subitem1'
+                    }, {
+                        name: 'subitem2'
+                    }]
+                }, {
+                    name: 'item2'
+                }, {
+                    name: 'item3'
+                }]
             }));
         </script>
     </body>

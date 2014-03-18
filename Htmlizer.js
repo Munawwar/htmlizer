@@ -58,14 +58,19 @@
     }
     //HTML 4 and 5 void tags
     var voidTags = unwrap('area,base,basefont,br,col,command,embed,frame,hr,img,input,keygen,link,meta,param,source,track,wbr'),
-        regexMap = {
+        regexString = {
             JSVar: "[$_A-Za-z][$_A-Za-z0-9]*"
         };
-    regexMap.DotNotation = new RegExp('(' + regexMap.JSVar + '(?:\\.' + regexMap.JSVar + ')*)');
+    regexString.DotNotation = '(' + regexString.JSVar + '(?:\\.' + regexString.JSVar + ')*)';
+
+    var regexMap = {
+        DotNotation: new RegExp(regexString.DotNotation)
+    };
 
     //Valid statements. Currently only 'if' statement.
     var syntaxRegex = {
-        "if": new RegExp("(?:(ko[ ]+if|if):(.+))")
+        "if": new RegExp("(?:(ko[ ]+if|if):(.+))"),
+        foreach: new RegExp("(?:(ko[ ]+foreach|foreach):[ ]*" + regexString.DotNotation + ")")
     };
 
     /**
@@ -83,10 +88,16 @@
     }
 
     Htmlizer.prototype = {
+        /**
+         * @param {Object} data
+         */
         toDocumentFragment: function (data) {
             var frag = this.frag.cloneNode(true);
 
             var stack = [], //Keep track of ifs and fors
+                block = [],
+                foreachOpen = false,
+                blockNestingCount = 0,
                 toRemove = []; //use this to remove nodes within if statement that are false.
             traverse(frag, frag, function (node, isOpenTag) {
                 if (isOpenTag) {
@@ -94,9 +105,12 @@
                         toRemove.push(node);
                         return 'continue';
                     }
+                    if (foreachOpen) {
+                        block.push(node);
+                    }
 
                     var val;
-                    if (node.nodeType === 1) { //element
+                    if (node.nodeType === 1 && !foreachOpen) { //element
                         var bindOpts = node.getAttribute('data-bind'), attributes;
                         if (bindOpts) {
                             bindOpts = parseObjectLiteral(bindOpts);
@@ -128,15 +142,61 @@
                         //Process if statement
                         var stmt = node.data.trim(), match;
                         if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
-                            val = saferEval(match[2], data);
-                            stack.unshift({
-                                key: 'if',
-                                val: val
-                            });
-                            toRemove.push(node);
-                        } else if ((/^\/(ko|if)/).test(stmt)) {
-                            stack.shift();
-                            toRemove.push(node);
+                            if (!foreachOpen) {
+                                val = saferEval(match[2], data);
+                                stack.unshift({
+                                    key: 'if',
+                                    val: val
+                                });
+                                toRemove.push(node);
+                            } else {
+                                //no need to evaluate this if foreachOpen, because it is added to
+                                //'blocks' and will be evaluated later
+                                blockNestingCount += 1;
+                            }
+                        } else if ((/^((ko[ ]+foreach)|foreach):/).test(stmt) && (match = stmt.match(syntaxRegex.foreach))) {
+                            if (!foreachOpen) {
+                                foreachOpen = true;
+                                val = saferEval(match[2], data);
+                                stack.unshift({
+                                    key: 'foreach',
+                                    val: val
+                                });
+                                toRemove.push(node);
+                            } else {
+                                blockNestingCount += 1;
+                            }
+                        } else if ((match = stmt.match(/^\/(ko|if|foreach)/))) {
+                            //TODO: Check for unbalanced ifs/fors
+                            if ((/^\/(ko|foreach)/).test(stmt) && stack[0] &&
+                                stack[0].key === 'foreach' && blockNestingCount === 0) {
+                                foreachOpen = false;
+
+                                var tempFrag = document.createDocumentFragment();
+                                block.pop(); //remove end tag from block
+                                block.forEach(function (n) {
+                                    n.parentNode.removeChild(n);
+                                    tempFrag.appendChild(n);
+                                });
+                                block = [];
+
+                                if (tempFrag.firstChild && stack[0].val instanceof Array) {
+                                    var items = stack[0].val;
+                                    items.forEach(function (item, index) {
+                                        item.$index = index;
+                                        item.$parent = data;
+                                        var output = (new Htmlizer(tempFrag)).toDocumentFragment(item);
+                                        node.parentNode.insertBefore(output, node);
+                                    });
+                                }
+                            }
+
+                            if (!foreachOpen) {
+                                stack.shift();
+                                toRemove.push(node);
+                            } else {
+                                blockNestingCount -= 1;
+                            }
                         }
                     }
                 }
@@ -241,9 +301,12 @@
 
     return Htmlizer;
 }, function () {
-    if (arguments.length < 3) {
-        return (new Function('$data', 'with($data){return ' + arguments[0] + '}'))(arguments[1] || {});
-    } else if (arguments.length < 4) {
-        return (new Function('$context', '$data', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {});
-    }
+    //Templates could be attempting to reference undefined variables. Hence try catch is required.
+    try {
+        if (arguments.length < 3) {
+            return (new Function('$data', 'with($data){return ' + arguments[0] + '}'))(arguments[1] || {});
+        } else if (arguments.length < 4) {
+            return (new Function('$context', '$data', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {});
+        }
+    } catch (e) {}
 }));
