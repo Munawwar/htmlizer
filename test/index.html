@@ -14,15 +14,15 @@
                 return xhr.responseText;
             }
 
-            //Test 1
-            var text = fetch('test.html');
+            //Test 1 - Nested if comments
+            var text = fetch('test-if-comment.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Howdy!',
                 cls: 'btn btn-default' //bootstrap 3 button css class
             }));
 
-            //Test 2
-            var text = fetch('test2.html');
+            //Test 2 - Neted foreach comment
+            var text = fetch('test-foreach-comment.html');
             console.log((new Htmlizer(text)).toString({
                 items: [{
                     name: 'item1',
@@ -37,6 +37,14 @@
                     name: 'item3'
                 }]
             }));
+
+            //Test 3 - inline if
+            var text = fetch('test-if-inline.html');
+            console.log((new Htmlizer(text)).toString({
+                btnText: 'Howdy!',
+                cls: 'btn btn-default' //bootstrap 3 button css class
+            }));
+
         </script>
     </body>
 </html>

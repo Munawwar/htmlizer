@@ -6,8 +6,6 @@
  * HTML must be balanced, else it won't be correctly converted to DOM.
  *
  * Use cases are mainly to render simple conditional attributes and nodes.
- * (Not exactly meant for 'for' loops etc, which I believe is better done with JS using DOM APIs).
- *
  *
  * Dependencies
  * 1. jQuery
@@ -67,7 +65,7 @@
         DotNotation: new RegExp(regexString.DotNotation)
     };
 
-    //Valid statements. Currently only 'if' statement.
+    //Valid statements.
     var syntaxRegex = {
         "if": new RegExp("(?:(ko[ ]+if|if):(.+))"),
         foreach: new RegExp("(?:(ko[ ]+foreach|foreach):[ ]*" + regexString.DotNotation + ")")
@@ -109,38 +107,52 @@
                         block.push(node);
                     }
 
-                    var val;
+                    var val, match;
                     if (node.nodeType === 1 && !foreachOpen) { //element
                         var bindOpts = node.getAttribute('data-bind'), attributes;
                         if (bindOpts) {
-                            bindOpts = parseObjectLiteral(bindOpts);
-                            bindOpts.forEach(function (opt) {
-                                if (opt[0] === 'text' && regexMap.DotNotation.test(opt[1])) {
-                                    val = saferEval(opt[1], data);
-                                    if (val !== undefined) {
-                                        node.appendChild(document.createTextNode(val));
-                                    }
-                                }
-                                if (opt[0] === 'attr') {
-                                    attributes = parseObjectLiteral(opt[1].slice(1, -1));
-                                    attributes.forEach(function (tuple) {
-                                        if (regexMap.DotNotation.test(tuple[1])) {
-                                            val = saferEval(tuple[1], data);
-                                            if (val) {
-                                                node.setAttribute(tuple[0], val);
-                                            }
-                                        }
-                                    });
-                                }
-                            });
                             node.removeAttribute('data-bind');
+                            var bindings = this.parseObjectLiteral(bindOpts);
+
+                            if (bindings['if'] && bindings.text) {
+                                throw new Error('Multiple bindings (if and text) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
+                            }
+
+                            //First evaluate if
+                            if (bindings['if']) {
+                                val = saferEval(bindings['if'], data);
+                                if (!val) {
+                                    toRemove = toRemove.concat(this.slice(node.childNodes));
+                                    return 'continue';
+                                }
+                                return;
+                            }
+
+                            if (bindings.text && regexMap.DotNotation.test(bindings.text)) {
+                                val = saferEval(bindings.text, data);
+                                if (val !== undefined) {
+                                    node.appendChild(document.createTextNode(val));
+                                }
+                            }
+
+                            if (bindings.attr) {
+                                attributes = parseObjectLiteral(bindings.attr.slice(1, -1));
+                                attributes.forEach(function (tuple) {
+                                    if (regexMap.DotNotation.test(tuple[1])) {
+                                        val = saferEval(tuple[1], data);
+                                        if (val) {
+                                            node.setAttribute(tuple[0], val);
+                                        }
+                                    }
+                                });
+                            }
                         }
                     }
 
                     //HTML comment node
                     if (node.nodeType === 8) {
                         //Process if statement
-                        var stmt = node.data.trim(), match;
+                        var stmt = node.data.trim();
                         if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
                             if (!foreachOpen) {
                                 val = saferEval(match[2], data);
@@ -219,7 +231,7 @@
                     var tag = node.nodeName.toLowerCase();
                     if (isOpenTag) {
                         html += '<' + tag;
-                        Array.prototype.slice.call(node.attributes).forEach(function (attr) {
+                        this.slice(node.attributes).forEach(function (attr) {
                             html += ' ' + attr.name + '="' + attr.value + '"';
                         });
                         html += '>';
@@ -236,6 +248,25 @@
                 }
             }, this);
             return html;
+        },
+
+        /**
+         * @private
+         */
+        slice: function (arrlike, index) {
+            return Array.prototype.slice.call(arrlike, index);
+        },
+
+        /**
+         * @private
+         */
+        parseObjectLiteral: function (objectLiteral) {
+            var obj = {},
+                tuples = parseObjectLiteral(objectLiteral);
+            tuples.forEach(function (tuple) {
+                obj[tuple[0]] = tuple[1];
+            });
+            return obj;
         }
     };
 
