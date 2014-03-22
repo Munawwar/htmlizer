@@ -27,12 +27,15 @@ Template syntax
 -----
 Syntax is similar to KnockoutJS (in fact supports a subset of Knockout templates).
 
+#### *text* binding:
+
 ```
 (new Htmlizer('<span data-bind="text: mytext"></span>')).toString({mytext: 'test'})
 
 Output: <span>test</span>
 ```
-  
+
+#### *attr* binding:  
 
 ```
 (new Htmlizer('<span data-bind="text: mytext, attr: {class: cls}"></span>'))
@@ -41,6 +44,17 @@ Output: <span>test</span>
 Output: <span class="btn btn-default">test</span>
 ```
 
+#### *if* binding:
+```
+(new Htmlizer('\
+  <div data-bind="if: show">\
+    This message won't be shown.
+  </div>')).toString({show: false});`
+
+Output: <div></div>
+```
+
+#### Containerless *if* binding:
 ```
 (new Htmlizer('\
   <div>\
@@ -50,7 +64,20 @@ Output: <span class="btn btn-default">test</span>
     <!-- ko if: !count -->\
       No results to display.\
     <!-- /ko -->\
-  </div>')).toString({count: 0});`
+  </div>')).toString({count: 0});
 
 Output: <div>No results to display.</div>
+```
+
+#### Containerless *foreach* binding:
+```
+(new Htmlizer('\
+  <div>\
+      <!-- foreach: items -->\
+          <div data-bind="text: name"></div>\
+      <!-- /ko -->\
+  </div>')).toString({
+    items: [{name: 'item1'}, {name: 'item2'}, {name: 'item3'}]
+  });
+</div>
 ```
