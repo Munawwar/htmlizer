@@ -33,6 +33,17 @@ describe('run container-less nested "if" statement test', function () {
     });
 });
 
+describe('run inline "foreach" statement test', function () {
+    var html = fetch('test/test-foreach-inline.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            items: ['item1', 'item2', 'item3']
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('and it should have 4 HTMLElements', function () {
+        assert.equal(4, countElements(df));
+    });
+});
+
 describe('run container-less "foreach" statement test', function () {
     var html = fetch('test/test-foreach-comment.html'),
         outputHtml = (new Htmlizer(html)).toString({

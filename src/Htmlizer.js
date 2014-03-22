@@ -86,15 +86,17 @@
                         block.push(node);
                     }
 
-                    var val, match;
+                    var val, match, tempFrag;
                     if (node.nodeType === 1 && !foreachOpen) { //element
                         var bindOpts = node.getAttribute('data-bind'), attributes;
                         if (bindOpts) {
                             node.removeAttribute('data-bind');
                             var bindings = this.parseObjectLiteral(bindOpts);
 
-                            if (bindings['if'] && bindings.text) {
-                                throw new Error('Multiple bindings (if and text) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
+                            var descendantBindings = (bindings['if'] ? 1 : 0) + (bindings.foreach ? 1 : 0) + (bindings.text ? 1 : 0);
+
+                            if (descendantBindings > 1) {
+                                throw new Error('Multiple bindings (if,foreach and/or text) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
                             }
 
                             //First evaluate if
@@ -103,6 +105,20 @@
                                 if (!val) {
                                     toRemove = toRemove.concat(this.slice(node.childNodes));
                                     return 'continue';
+                                }
+                                return;
+                            }
+
+                            if (bindings.foreach) {
+                                val = saferEval(bindings.foreach, data);
+                                tempFrag = document.createDocumentFragment();
+                                this.slice(node.childNodes).forEach(function (n) {
+                                    n.parentNode.removeChild(n);
+                                    tempFrag.appendChild(n);
+                                });
+                                if (tempFrag.firstChild && val instanceof Array) {
+                                    tempFrag = this.executeForEach(data, val, tempFrag);
+                                    node.appendChild(tempFrag);
                                 }
                                 return;
                             }
@@ -163,7 +179,7 @@
                                 stack[0].key === 'foreach' && blockNestingCount === 0) {
                                 foreachOpen = false;
 
-                                var tempFrag = document.createDocumentFragment();
+                                tempFrag = document.createDocumentFragment();
                                 block.pop(); //remove end tag from block
                                 block.forEach(function (n) {
                                     n.parentNode.removeChild(n);
@@ -173,12 +189,8 @@
 
                                 if (tempFrag.firstChild && stack[0].val instanceof Array) {
                                     var items = stack[0].val;
-                                    items.forEach(function (item, index) {
-                                        item.$index = index;
-                                        item.$parent = data;
-                                        var output = (new Htmlizer(tempFrag)).toDocumentFragment(item);
-                                        node.parentNode.insertBefore(output, node);
-                                    });
+                                    tempFrag = this.executeForEach(data, items, tempFrag);
+                                    node.parentNode.insertBefore(tempFrag, node);
                                 }
                             }
 
@@ -228,6 +240,27 @@
                 }
             }, this);
             return html;
+        },
+
+        /**
+         * @private
+         * @param {Object} data Data object
+         * @param {Array} items The array to iterate through
+         * @param {DocumentFragment} fragment Document fragment that contains the body of the foreach statement
+         */
+        executeForEach: function (data, items, fragment) {
+            var output = document.createDocumentFragment();
+            items.forEach(function (item, index) {
+                if (typeof item !== 'object') {
+                    item = {$data: item};
+                }
+                item.$index = index;
+                //Hmm...circular references. Keep in mind if you ever want to do a deep object clone.
+                item.$root = data.$root || data;
+                item.$parent = data;
+                output.appendChild((new Htmlizer(fragment)).toDocumentFragment(item));
+            });
+            return output;
         },
 
         /**
