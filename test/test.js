@@ -66,6 +66,17 @@ describe('run container-less "foreach" statement test', function () {
     });
 });
 
+describe('run html bind test', function () {
+    var html = fetch('test/html-binding.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            message: '<b>This</b> is a <b>serious message</b>.'
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('and it should have 3 HTMLElements', function () {
+        assert.equal(3, countElements(df));
+    });
+});
+
 
 /*Utility functions*/
 function fetch(pathToTextFile) {

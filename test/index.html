@@ -50,6 +50,12 @@
                     name: 'item3'
                 }]
             }));
+
+            //Test 5 - html binding
+            var text = fetch('html-binding.html');
+            console.log((new Htmlizer(text)).toString({
+                message: '<b>This</b> is a <b>serious message</b>.'
+            }));
         </script>
     </body>
 </html>

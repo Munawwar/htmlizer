@@ -91,12 +91,11 @@
                         var bindOpts = node.getAttribute('data-bind'), attributes;
                         if (bindOpts) {
                             node.removeAttribute('data-bind');
-                            var bindings = this.parseObjectLiteral(bindOpts);
-
-                            var descendantBindings = (bindings['if'] ? 1 : 0) + (bindings.foreach ? 1 : 0) + (bindings.text ? 1 : 0);
+                            var bindings = this.parseObjectLiteral(bindOpts),
+                                descendantBindings = (bindings['if'] ? 1 : 0) + (bindings.foreach ? 1 : 0) + (bindings.text ? 1 : 0) + (bindings.html ? 1 : 0);
 
                             if (descendantBindings > 1) {
-                                throw new Error('Multiple bindings (if,foreach and/or text) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
+                                throw new Error('Multiple bindings (if,foreach,text and/or html) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
                             }
 
                             //First evaluate if
@@ -128,6 +127,19 @@
                                 if (val !== undefined) {
                                     node.appendChild(document.createTextNode(val));
                                 }
+                            }
+
+                            if (bindings.html) {
+                                $(node).empty();
+                                val = saferEval(bindings.html, data);
+                                if (val) {
+                                    tempFrag = document.createDocumentFragment();
+                                    $.parseHTML(val).forEach(function (node) {
+                                        tempFrag.appendChild(node);
+                                    }, this);
+                                    node.appendChild(tempFrag);
+                                }
+                                return;
                             }
 
                             if (bindings.attr) {
