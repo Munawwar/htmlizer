@@ -78,6 +78,26 @@ Output: <div>No results to display.</div>
 
 Note: You can use either "if:" or "ko if:" to begin an *if* statement. And you may either use "/if" or "/ko" to end an *if* statement.
 
+#### *foreach* binding:
+```
+Template:
+<div data-bind="foreach: items">
+    <div data-bind="text: $data"></div>
+</div>
+
+Data: 
+{
+  items: ['item 1', 'item 2', 'item 3']
+}
+
+Output:
+<div>
+  <div>item 1</div>
+  <div>item 2</div>
+  <div>item 3</div>
+</div>
+```
+
 #### Containerless *foreach* binding:
 ```
 Template:
@@ -98,4 +118,14 @@ Output:
   <div>item 2</div>
   <div>item 3</div>
 </div>
+```
+
+#### *html* binding:
+```
+Template:
+<div data-bind="html: message"></div>
+
+Data: {message: '<b>This</b> is a <b>serious message</b>'}
+
+Output: <div><b>This</b> is a <b>serious message</b></div>
 ```
