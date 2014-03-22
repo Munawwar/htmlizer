@@ -111,7 +111,7 @@
                                 val = saferEval(bindings.text, data);
                                 if (val !== undefined) {
                                     //escape <,> and &.
-                                    val = val.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                                    val = (val + '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
                                     node.appendChild(document.createTextNode(val));
                                 }
                             }
