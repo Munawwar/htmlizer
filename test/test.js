@@ -7,7 +7,7 @@ var assert = require("assert"),
     jqueryFactory = require('../src/jquery.js');
 
 describe('run inline "if" statement test', function () {
-    var html = fetch('test/test-if-inline.html'),
+    var html = fetch('test/if-inline-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
             btnText: 'Howdy!',
             cls: 'btn btn-default' //bootstrap 3 button css class
@@ -19,7 +19,7 @@ describe('run inline "if" statement test', function () {
 });
 
 describe('run container-less nested "if" statement test', function () {
-    var html = fetch('test/test-if-comment.html'),
+    var html = fetch('test/if-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
             btnText: 'Howdy!',
             cls: 'btn btn-default' //bootstrap 3 button css class
@@ -34,7 +34,7 @@ describe('run container-less nested "if" statement test', function () {
 });
 
 describe('run inline "foreach" statement test', function () {
-    var html = fetch('test/test-foreach-inline.html'),
+    var html = fetch('test/foreach-inline-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
             items: ['item1', 'item2', 'item3']
         }),
@@ -45,7 +45,7 @@ describe('run inline "foreach" statement test', function () {
 });
 
 describe('run container-less "foreach" statement test', function () {
-    var html = fetch('test/test-foreach-comment.html'),
+    var html = fetch('test/foreach-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
             items: [{
                 name: 'item1',
@@ -67,7 +67,7 @@ describe('run container-less "foreach" statement test', function () {
 });
 
 describe('run html bind test', function () {
-    var html = fetch('test/html-binding.html'),
+    var html = fetch('test/html-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
             message: '<b>This</b> is a <b>serious message</b>.'
         }),
