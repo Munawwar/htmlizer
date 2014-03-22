@@ -1,0 +1,9 @@
+{
+   "name": "Htmlizer",
+   "description": "HTML Templates",
+   "version": "0.0.1",
+   "devDependencies": {
+      "mocha": "1.18.2",
+      "jsdom": "0.10.3"
+   }
+}

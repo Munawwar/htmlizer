@@ -36,17 +36,24 @@
  */
 (function (root, factory, saferEval) {
     if (typeof exports === 'object') {
+        var jsdom = require('jsdom').jsdom,
+            window = jsdom('').parentWindow;
         module.exports = factory(
-            require('./jquery'),
+            require('./jquery')(window),
             require('./js-object-literal-parse.js'),
-            saferEval
+            saferEval,
+            window
         );
     } else if (typeof define === 'function' && define.amd) {
         define(['jquery', './js-object-literal-parse'], factory, saferEval);
     } else {
         root.Htmlizer = factory(root.jQuery, root.parseObjectLiteral, saferEval);
     }
-}(this, function ($, parseObjectLiteral, saferEval) {
+}(this, function ($, parseObjectLiteral, saferEval, window) {
+    //browser and jsdom compatibility
+    window = window || this;
+    var document = window.document;
+
     function unwrap(str) {
         var arr = str.split(','), val, o = {};
         while ((val = arr.pop())) {
