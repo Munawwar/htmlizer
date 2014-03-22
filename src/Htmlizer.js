@@ -3,36 +3,8 @@
 
 /**
  * Html Templating.
- * HTML must be balanced, else it won't be correctly converted to DOM.
- *
- * Use cases are mainly to render simple conditional attributes and nodes.
- *
- * Dependencies
- * 1. jQuery
- * 2. https://github.com/mbest/js-object-literal-parse
- *
- * Usage: (new Htmlizer('<tempalte string>')).apply(dataObject);
- *
- * Supports following syntaxes (with example):
- * Eg 1:
- * (new Htmlizer('<span data-bind="text: mytext"></span>')).apply({mytext: 'test'})
- * Output: <span>test</span>
- *
- * Eg 2:
- * (new Htmlizer('<span data-bind="text: mytext, attr: {class: cls}"></span>')).apply({mytext: 'test', cls: 'btn btn-default'})
- * Output: <span class="btn btn-default">test</span>
- *
- * Eg 3:
- * (new Htmlizer('\
- * <div>\
- *    <!-- if: count -->\
- *      <div id="results"></div>\
- *    <!-- end if -->\
- *    <!-- if !count -->\
- *      No results to display.\
- *    <!-- /if -->\
- * </div>')).apply({count: 0});
- * Output: <div>No results to display.</div>
+ * The MIT License (MIT)
+ * Copyright (c) 2014 Munawwar
  */
 (function (root, factory, saferEval) {
     if (typeof exports === 'object') {
@@ -79,7 +51,7 @@
     };
 
     /**
-     * @param {String|DocumentFragment} template
+     * @param {String|DocumentFragment} template If string, then it is better if the HTML is balanced, else it probably won't be correctly converted to DOM.
      */
     function Htmlizer(template) {
         if (typeof template === 'string') {
@@ -138,6 +110,8 @@
                             if (bindings.text && regexMap.DotNotation.test(bindings.text)) {
                                 val = saferEval(bindings.text, data);
                                 if (val !== undefined) {
+                                    //escape <,> and &.
+                                    val = val.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
                                     node.appendChild(document.createTextNode(val));
                                 }
                             }
