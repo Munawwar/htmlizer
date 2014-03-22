@@ -110,8 +110,6 @@
                             if (bindings.text && regexMap.DotNotation.test(bindings.text)) {
                                 val = saferEval(bindings.text, data);
                                 if (val !== undefined) {
-                                    //escape <,> and &.
-                                    val = (val + '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
                                     node.appendChild(document.createTextNode(val));
                                 }
                             }
@@ -225,7 +223,8 @@
                     }
                 }
                 if (isOpenTag && node.nodeType === 3) {
-                    html += node.nodeValue;
+                    //escape <,> and &.
+                    html += (node.nodeValue || '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
                 }
             }, this);
             return html;
