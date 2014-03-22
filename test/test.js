@@ -2,9 +2,9 @@
 
 var assert = require("assert"),
     fs = require('fs'),
-    Htmlizer = require('../Htmlizer.js'),
+    Htmlizer = require('../src/Htmlizer.js'),
     jsdom = require('jsdom').jsdom,
-    jqueryFactory = require('../jquery');
+    jqueryFactory = require('../src/jquery.js');
 
 describe('run inline "if" statement test', function () {
     var html = fetch('test/test-if-inline.html'),
