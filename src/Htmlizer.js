@@ -33,6 +33,11 @@
         }
         return o;
     }
+
+    function replaceJsCssPropWithCssProp(m) {
+        return '-' + m.toLowerCase();
+    }
+
     //HTML 4 and 5 void tags
     var voidTags = unwrap('area,base,basefont,br,col,command,embed,frame,hr,img,input,keygen,link,meta,param,source,track,wbr'),
         regexString = {
@@ -151,6 +156,24 @@
                                             node.setAttribute(tuple[0], val);
                                         }
                                     }
+                                });
+                            }
+
+                            if (bindings.css) {
+                                var cssProps = parseObjectLiteral(bindings.css.slice(1, -1));
+                                cssProps.forEach(function (tuple) {
+                                    val = saferEval(tuple[1], data);
+                                    if (val) {
+                                        $(node).addClass(tuple[0]);
+                                    }
+                                });
+                            }
+
+                            if (bindings.style) {
+                                var styleProps = parseObjectLiteral(bindings.style.slice(1, -1));
+                                styleProps.forEach(function (tuple) {
+                                    val = saferEval(tuple[1], data) || null;
+                                    node.style.setProperty(tuple[0].replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
                                 });
                             }
                         }
