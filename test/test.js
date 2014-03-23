@@ -6,6 +6,32 @@ var assert = require("assert"),
     jsdom = require('jsdom').jsdom,
     jqueryFactory = require('../src/jquery.js');
 
+describe('run text and attr binding test', function () {
+    var html = fetch('test/text-and-attr-binding-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            btnText: 'Click here',
+            cls: 'btn btn-default' //bootstrap 3 button css class
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have text = "Click here"', function () {
+        assert.equal('Click here', df.firstChild.textContent.trim());
+    });
+    it('it should also have class = "btn btn-default"', function () {
+        assert.equal('btn btn-default', df.firstChild.className.trim());
+    });
+});
+
+describe('run html bind test', function () {
+    var html = fetch('test/html-binding-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            message: '<b>This</b> is a <b>serious message</b>.'
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have 3 HTMLElements', function () {
+        assert.equal(3, countElements(df));
+    });
+});
+
 describe('run inline "if" statement test', function () {
     var html = fetch('test/if-inline-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
@@ -13,7 +39,7 @@ describe('run inline "if" statement test', function () {
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('and it should have 2 HTMLElements', function () {
+    it('it should have 2 HTMLElements', function () {
         assert.equal(2, countElements(df));
     });
 });
@@ -25,10 +51,10 @@ describe('run container-less nested "if" statement test', function () {
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('and it should have 2 HTMLElements', function () {
+    it('it should have 2 HTMLElements', function () {
         assert.equal(2, countElements(df));
     });
-    it('and button element should have text in it', function () {
+    it('button element should have text in it', function () {
         assert.equal('Howdy!', findElementByClassName(df, 'btn').firstChild.nodeValue);
     });
 });
@@ -39,7 +65,7 @@ describe('run inline "foreach" statement test', function () {
             items: ['item1', 'item2', 'item3']
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('and it should have 4 HTMLElements', function () {
+    it('it should have 4 HTMLElements', function () {
         assert.equal(4, countElements(df));
     });
 });
@@ -61,19 +87,23 @@ describe('run container-less "foreach" statement test', function () {
             }]
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('and it should have 6 HTMLElements', function () {
+    it('it should have 6 HTMLElements', function () {
         assert.equal(6, countElements(df));
     });
 });
 
-describe('run html bind test', function () {
-    var html = fetch('test/html-binding-tpl.html'),
+describe('run css and attr binding test', function () {
+    var html = fetch('test/css-and-style-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
-            message: '<b>This</b> is a <b>serious message</b>.'
+            isWarning: true,
+            bold: false
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('and it should have 3 HTMLElements', function () {
-        assert.equal(3, countElements(df));
+    it('it should have class="warning"', function () {
+        assert.equal('warning', df.firstChild.className.trim());
+    });
+    it('it should have style="font-weight: normal"', function () {
+        assert.equal('normal', df.firstChild.style.fontWeight);
     });
 });
 
