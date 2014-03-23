@@ -177,6 +177,8 @@
                                 });
                             }
                         }
+                    } else if (node.nodeType === 1 && foreachOpen) {
+                        return 'continue';
                     }
 
                     //HTML comment node
