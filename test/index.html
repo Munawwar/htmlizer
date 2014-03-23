@@ -15,6 +15,7 @@
             }
 
             //Test 1 - text and attr binding
+            console.info('Test 1 - text and attr binding');
             var text = fetch('text-and-attr-binding-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Click here',
@@ -22,12 +23,14 @@
             }));
 
             //Test 2 - html binding
+            console.info('Test 2 - html binding');
             var text = fetch('html-binding-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 message: '<b>This</b> is a <b>serious message</b>.'
             }));
 
             //Test 3 - inline if
+            console.info('Test 3 - inline if');
             var text = fetch('if-inline-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Howdy!',
@@ -35,6 +38,7 @@
             }));
 
             //Test 4 - Nested if comments
+            console.info('Test 4 - Nested if comments');
             var text = fetch('if-comment-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Howdy!',
@@ -42,12 +46,32 @@
             }));
 
             //Test 5 - Inline foreach
+            console.info('Test 5 - Inline foreach');
             var text = fetch('foreach-inline-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 items: ['item1', 'item2', 'item3']
             }));
 
+            //Test 5.1 - Inline foreach as
+            console.info('Test 5.1 - Inline foreach as');
+            var text = fetch('foreach-as-tpl.html');
+            console.log((new Htmlizer(text)).toString({
+                items: [{
+                    name: 'item1',
+                    subItems: [{
+                        name: 'subitem1'
+                    }, {
+                        name: 'subitem2'
+                    }]
+                }, {
+                    name: 'item2'
+                }, {
+                    name: 'item3'
+                }]
+            }));
+
             //Test 6 - Nested foreach comment
+            console.info('Test 6 - Nested foreach comment');
             var text = fetch('foreach-comment-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 items: [{
@@ -65,6 +89,7 @@
             }));
 
             //Test 7 - css and style binding
+            console.info('Test 7 - css and style binding');
             var text = fetch('css-and-style-binding-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 isWarning: true,

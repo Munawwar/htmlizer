@@ -52,7 +52,7 @@
     //Valid statements.
     var syntaxRegex = {
         "if": new RegExp("(?:(ko[ ]+if|if):(.+))"),
-        foreach: new RegExp("(?:(ko[ ]+foreach|foreach):[ ]*" + regexString.DotNotation + ")")
+        foreach: new RegExp("(?:(ko[ ]+foreach|foreach):(.+))")
     };
 
     /**
@@ -91,7 +91,7 @@
                         block.push(node);
                     }
 
-                    var val, match, tempFrag;
+                    var val, match, tempFrag, inner;
                     if (node.nodeType === 1 && !foreachOpen) { //element
                         var bindOpts = node.getAttribute('data-bind'), attributes;
                         if (bindOpts) {
@@ -114,14 +114,23 @@
                             }
 
                             if (bindings.foreach) {
-                                val = saferEval(bindings.foreach, data);
+                                inner = bindings.foreach;
+                                if (inner[0] === '{') {
+                                    inner = this.parseObjectLiteral(inner);
+                                    val = {
+                                        items: saferEval(inner.data, data),
+                                        as: inner.as.slice(1, -1) //strip string quote
+                                    };
+                                } else {
+                                    val = {items: saferEval(inner, data)};
+                                }
                                 tempFrag = document.createDocumentFragment();
                                 this.slice(node.childNodes).forEach(function (n) {
                                     n.parentNode.removeChild(n);
                                     tempFrag.appendChild(n);
                                 });
-                                if (tempFrag.firstChild && val instanceof Array) {
-                                    tempFrag = this.executeForEach(data, val, tempFrag);
+                                if (tempFrag.firstChild && val.items instanceof Array) {
+                                    tempFrag = this.executeForEach(tempFrag, data, val.items, val.as);
                                     node.appendChild(tempFrag);
                                 }
                                 return;
@@ -201,7 +210,16 @@
                         } else if ((/^((ko[ ]+foreach)|foreach):/).test(stmt) && (match = stmt.match(syntaxRegex.foreach))) {
                             if (!foreachOpen) {
                                 foreachOpen = true;
-                                val = saferEval(match[2], data);
+                                inner = match[2].trim();
+                                if (inner[0] === '{') {
+                                    inner = this.parseObjectLiteral(inner);
+                                    val = {
+                                        items: saferEval(inner.data, data),
+                                        as: inner.as.slice(1, -1) //strip string quote
+                                    };
+                                } else {
+                                    val = {items: saferEval(inner, data)};
+                                }
                                 stack.unshift({
                                     key: 'foreach',
                                     val: val
@@ -224,9 +242,9 @@
                                 });
                                 block = [];
 
-                                if (tempFrag.firstChild && stack[0].val instanceof Array) {
-                                    var items = stack[0].val;
-                                    tempFrag = this.executeForEach(data, items, tempFrag);
+                                if (tempFrag.firstChild && stack[0].val.items instanceof Array) {
+                                    val = stack[0].val;
+                                    tempFrag = this.executeForEach(tempFrag, data, val.items, val.as);
                                     node.parentNode.insertBefore(tempFrag, node);
                                 }
                             }
@@ -281,21 +299,54 @@
 
         /**
          * @private
+         * @param {DocumentFragment} fragment Document fragment that contains the body of the foreach statement
          * @param {Object} data Data object
          * @param {Array} items The array to iterate through
-         * @param {DocumentFragment} fragment Document fragment that contains the body of the foreach statement
          */
-        executeForEach: function (data, items, fragment) {
-            var output = document.createDocumentFragment();
+        executeForEach: function (fragment, data, items, as) {
+            var output = document.createDocumentFragment(),
+                template = new Htmlizer(fragment);
             items.forEach(function (item, index) {
                 if (typeof item !== 'object') {
                     item = {$data: item};
                 }
+                //Add sepcial properties for templates to access.
                 item.$index = index;
                 //Hmm...circular references. Keep in mind if you ever want to do a deep object clone.
                 item.$root = data.$root || data;
                 item.$parent = data;
-                output.appendChild((new Htmlizer(fragment)).toDocumentFragment(item));
+                //Copy 'as' references from parent. This is done recursively, so it will have all the 'as' references from ancestors.
+                if (data.$as) {
+                    item.$as = data.$as.slice();
+                    //FIXME: This could potentially overwrite data. We'll need to save a copy of it, so that it can be restored later.
+                    item.$as.forEach(function (tuple) {
+                        item[tuple[0]] = tuple[1];
+                    });
+                }
+                if (as) {
+                    //FIXME: This could potentially overwrite data. We'll need to save a copy of it, so that it can be restored later.
+                    item[as] = item;
+                    //Add to $as so that sub templates can access them.
+                    item.$as = item.$as || [];
+                    item.$as.push([as, item]);
+                }
+
+                //..finally execute
+                output.appendChild(template.toDocumentFragment(item));
+
+                //Remove all the temporary references we created
+                delete item.$index;
+                delete item.$root;
+                delete item.$parent;
+                if (data.$as) {
+                    item.$as.forEach(function (tuple) {
+                        delete item[tuple[0]];
+                    });
+                }
+                if (as) {
+                    delete item[as];
+                }
+                delete item.$as;
             });
             return output;
         },
