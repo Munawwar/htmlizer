@@ -80,7 +80,8 @@
                 context = {
                     $parents: [],
                     $root: data,
-                    $data: data
+                    $data: data,
+                    $rawData: data
                 };
             }
 
@@ -322,6 +323,7 @@
                     $parentContext: context,
                     $parents: ([data]).concat(context.$parents),
                     $data: item,
+                    $rawData: item,
                     //foreach specific
                     $index: index
                 };
@@ -434,6 +436,6 @@
             return (new Function('$context', '$data', '$element', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {}, arguments[3]);
         } catch (e) {}
     } else {
-        throw new Error ('Expression evaluator needs at least 4 arguments.');
+        throw new Error('Expression evaluator needs at least 4 arguments.');
     }
 }));
