@@ -107,6 +107,51 @@ describe('run css and attr binding test', function () {
     });
 });
 
+describe('run binding context test', function () {
+    var html = fetch('test/binding-context-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            items: [{
+                name: 'item1',
+                subItems: [{
+                    name: 'subitem1'
+                }]
+            }]
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+
+    var count = 0;
+    traverse(df, df, function (node, isOpenTag) {
+        if (isOpenTag && node.nodeType === 1 && node.nodeName === 'SPAN') {
+            count += 1;
+            if (count === 1) {
+                it('span 1 text should be "SPAN"', function () {
+                    assert.equal('SPAN', node.textContent);
+                });
+            }
+            if (count >= 2 && count <= 3) {
+                it('span ' + count + ' text should be "item1"', function () {
+                    assert.equal('item1', node.textContent);
+                });
+            }
+            if (count === 4) {
+                it('span 4 text should be "0"', function () {
+                    assert.equal('0', node.textContent);
+                });
+            }
+            if (count >= 5 && count <= 6) {
+                it('span ' + count + ' text should be "subitem1"', function () {
+                    assert.equal('subitem1', node.textContent);
+                });
+            }
+            if (count === 7) {
+                it('span 6 text should be "true"', function () {
+                    assert.equal('true', node.textContent);
+                });
+            }
+        }
+    });
+});
+
 
 /*Utility functions*/
 function fetch(pathToTextFile) {

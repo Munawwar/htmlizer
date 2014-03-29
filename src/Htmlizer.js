@@ -73,8 +73,16 @@
         /**
          * @param {Object} data
          */
-        toDocumentFragment: function (data) {
+        toDocumentFragment: function (data, context) {
             var frag = this.frag.cloneNode(true);
+
+            if (!context) {
+                context = {
+                    $parents: [],
+                    $root: data,
+                    $data: data
+                };
+            }
 
             var stack = [], //Keep track of ifs and fors
                 block = [],
@@ -105,7 +113,7 @@
 
                             //First evaluate if
                             if (bindings['if']) {
-                                val = saferEval(bindings['if'], data);
+                                val = saferEval(bindings['if'], context, data, node);
                                 if (!val) {
                                     toRemove = toRemove.concat(this.slice(node.childNodes));
                                     return 'continue';
@@ -118,11 +126,11 @@
                                 if (inner[0] === '{') {
                                     inner = this.parseObjectLiteral(inner);
                                     val = {
-                                        items: saferEval(inner.data, data),
+                                        items: saferEval(inner.data, context, data, node),
                                         as: inner.as.slice(1, -1) //strip string quote
                                     };
                                 } else {
-                                    val = {items: saferEval(inner, data)};
+                                    val = {items: saferEval(inner, context, data, node)};
                                 }
                                 tempFrag = document.createDocumentFragment();
                                 this.slice(node.childNodes).forEach(function (n) {
@@ -130,14 +138,14 @@
                                     tempFrag.appendChild(n);
                                 });
                                 if (tempFrag.firstChild && val.items instanceof Array) {
-                                    tempFrag = this.executeForEach(tempFrag, data, val.items, val.as);
+                                    tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
                                     node.appendChild(tempFrag);
                                 }
                                 return;
                             }
 
                             if (bindings.text && regexMap.DotNotation.test(bindings.text)) {
-                                val = saferEval(bindings.text, data);
+                                val = saferEval(bindings.text, context, data, node);
                                 if (val !== undefined) {
                                     node.appendChild(document.createTextNode(val));
                                 }
@@ -145,7 +153,7 @@
 
                             if (bindings.html) {
                                 $(node).empty();
-                                val = saferEval(bindings.html, data);
+                                val = saferEval(bindings.html, context, data, node);
                                 if (val) {
                                     tempFrag = document.createDocumentFragment();
                                     $.parseHTML(val).forEach(function (node) {
@@ -160,7 +168,7 @@
                                 attributes = parseObjectLiteral(bindings.attr.slice(1, -1));
                                 attributes.forEach(function (tuple) {
                                     if (regexMap.DotNotation.test(tuple[1])) {
-                                        val = saferEval(tuple[1], data);
+                                        val = saferEval(tuple[1], context, data, node);
                                         if (val) {
                                             node.setAttribute(tuple[0], val);
                                         }
@@ -171,7 +179,7 @@
                             if (bindings.css) {
                                 var cssProps = parseObjectLiteral(bindings.css.slice(1, -1));
                                 cssProps.forEach(function (tuple) {
-                                    val = saferEval(tuple[1], data);
+                                    val = saferEval(tuple[1], context, data, node);
                                     if (val) {
                                         $(node).addClass(tuple[0]);
                                     }
@@ -181,7 +189,7 @@
                             if (bindings.style) {
                                 var styleProps = parseObjectLiteral(bindings.style.slice(1, -1));
                                 styleProps.forEach(function (tuple) {
-                                    val = saferEval(tuple[1], data) || null;
+                                    val = saferEval(tuple[1], context, data, node) || null;
                                     node.style.setProperty(tuple[0].replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
                                 });
                             }
@@ -196,7 +204,7 @@
                         var stmt = node.data.trim();
                         if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
                             if (!foreachOpen) {
-                                val = saferEval(match[2], data);
+                                val = saferEval(match[2], context, data, node);
                                 stack.unshift({
                                     key: 'if',
                                     val: val
@@ -214,11 +222,11 @@
                                 if (inner[0] === '{') {
                                     inner = this.parseObjectLiteral(inner);
                                     val = {
-                                        items: saferEval(inner.data, data),
+                                        items: saferEval(inner.data, context, data, node),
                                         as: inner.as.slice(1, -1) //strip string quote
                                     };
                                 } else {
-                                    val = {items: saferEval(inner, data)};
+                                    val = {items: saferEval(inner, context, data, node)};
                                 }
                                 stack.unshift({
                                     key: 'foreach',
@@ -244,7 +252,7 @@
 
                                 if (tempFrag.firstChild && stack[0].val.items instanceof Array) {
                                     val = stack[0].val;
-                                    tempFrag = this.executeForEach(tempFrag, data, val.items, val.as);
+                                    tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
                                     node.parentNode.insertBefore(tempFrag, node);
                                 }
                             }
@@ -300,53 +308,40 @@
         /**
          * @private
          * @param {DocumentFragment} fragment Document fragment that contains the body of the foreach statement
+         * @param {Object} context
          * @param {Object} data Data object
          * @param {Array} items The array to iterate through
          */
-        executeForEach: function (fragment, data, items, as) {
+        executeForEach: function (fragment, context, data, items, as) {
             var output = document.createDocumentFragment(),
                 template = new Htmlizer(fragment);
             items.forEach(function (item, index) {
-                if (typeof item !== 'object') {
-                    item = {$data: item};
-                }
-                //Add sepcial properties for templates to access.
-                item.$index = index;
-                //Hmm...circular references. Keep in mind if you ever want to do a deep object clone.
-                item.$root = data.$root || data;
-                item.$parent = data;
+                var newContext = {
+                    $root: context.$root,
+                    $parent: data,
+                    $parentContext: context,
+                    $parents: ([data]).concat(context.$parents),
+                    $data: item,
+                    //foreach specific
+                    $index: index
+                };
+
                 //Copy 'as' references from parent. This is done recursively, so it will have all the 'as' references from ancestors.
-                if (data.$as) {
-                    item.$as = data.$as.slice();
-                    //FIXME: This could potentially overwrite data. We'll need to save a copy of it, so that it can be restored later.
-                    item.$as.forEach(function (tuple) {
-                        item[tuple[0]] = tuple[1];
+                if (context._as) {
+                    newContext._as = context._as.slice();
+                    newContext._as.forEach(function (tuple) {
+                        newContext[tuple[0]] = tuple[1];
                     });
                 }
                 if (as) {
-                    //FIXME: This could potentially overwrite data. We'll need to save a copy of it, so that it can be restored later.
-                    item[as] = item;
-                    //Add to $as so that sub templates can access them.
-                    item.$as = item.$as || [];
-                    item.$as.push([as, item]);
+                    newContext[as] = item;
+                    //Add to _as so that sub templates can access them.
+                    newContext._as = newContext._as || [];
+                    newContext._as.push([as, item]);
                 }
 
                 //..finally execute
-                output.appendChild(template.toDocumentFragment(item));
-
-                //Remove all the temporary references we created
-                delete item.$index;
-                delete item.$root;
-                delete item.$parent;
-                if (data.$as) {
-                    item.$as.forEach(function (tuple) {
-                        delete item[tuple[0]];
-                    });
-                }
-                if (as) {
-                    delete item[as];
-                }
-                delete item.$as;
+                output.appendChild(template.toDocumentFragment(item, newContext));
             });
             return output;
         },
@@ -434,11 +429,11 @@
     return Htmlizer;
 }, function () {
     //Templates could be attempting to reference undefined variables. Hence try catch is required.
-    try {
-        if (arguments.length < 3) {
-            return (new Function('$data', 'with($data){return ' + arguments[0] + '}'))(arguments[1] || {});
-        } else if (arguments.length < 4) {
-            return (new Function('$context', '$data', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {});
-        }
-    } catch (e) {}
+    if (arguments.length === 4) {
+        try {
+            return (new Function('$context', '$data', '$element', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {}, arguments[3]);
+        } catch (e) {}
+    } else {
+        throw new Error ('Expression evaluator needs at least 4 arguments.');
+    }
 }));

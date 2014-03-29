@@ -95,6 +95,19 @@
                 isWarning: true,
                 bold: false
             }));
+
+            //Test 8 - Binding context
+            console.info('Test 8 - Binding context');
+            var text = fetch('binding-context-tpl.html');
+            console.log((new Htmlizer(text)).toString({
+                items: [{
+                    name: 'item1',
+                    subItems: [{
+                        name: 'subitem1'
+                    }]
+                }]
+            }));
+
         </script>
     </body>
 </html>
