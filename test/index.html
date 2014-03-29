@@ -108,6 +108,14 @@
                 }]
             }));
 
+            //Test 9 - ifnot
+            console.info('Test 9 - ifnot');
+            var text = fetch('ifnot-tpl.html');
+            console.log((new Htmlizer(text)).toString({
+                btnText: 'Howdy!',
+                cls: 'btn btn-default' //bootstrap 3 button css class
+            }));
+
         </script>
     </body>
 </html>

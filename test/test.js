@@ -152,6 +152,21 @@ describe('run binding context test', function () {
     });
 });
 
+describe('run "ifnot" binding test', function () {
+    var html = fetch('test/ifnot-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            btnText: 'Howdy!',
+            cls: 'btn btn-default' //bootstrap 3 button css class
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have 2 HTMLElements', function () {
+        assert.equal(2, countElements(df));
+    });
+    it('button element should have text in it', function () {
+        assert.equal('Howdy!', findElementByClassName(df, 'btn').firstChild.nodeValue);
+    });
+});
+
 
 /*Utility functions*/
 function fetch(pathToTextFile) {

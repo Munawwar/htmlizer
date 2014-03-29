@@ -52,6 +52,7 @@
     //Valid statements.
     var syntaxRegex = {
         "if": new RegExp("(?:(ko[ ]+if|if):(.+))"),
+        "ifnot": new RegExp("(?:(ko[ ]+ifnot|ifnot):(.+))"),
         foreach: new RegExp("(?:(ko[ ]+foreach|foreach):(.+))")
     };
 
@@ -106,10 +107,16 @@
                         if (bindOpts) {
                             node.removeAttribute('data-bind');
                             var bindings = this.parseObjectLiteral(bindOpts),
-                                descendantBindings = (bindings['if'] ? 1 : 0) + (bindings.foreach ? 1 : 0) + (bindings.text ? 1 : 0) + (bindings.html ? 1 : 0);
+                                descendantBindings = (bindings['if'] ? 1 : 0) + (bindings.ifnot ? 1 : 0) + (bindings.foreach ? 1 : 0) +
+                                    (bindings.text ? 1 : 0) + (bindings.html ? 1 : 0);
 
                             if (descendantBindings > 1) {
-                                throw new Error('Multiple bindings (if,foreach,text and/or html) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
+                                throw new Error('Multiple bindings (if,ifnot,foreach,text and/or html) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
+                            }
+
+                            //Convert ifnot: (...) to if: !(...)
+                            if (bindings.ifnot) {
+                                bindings['if'] = '!(' + bindings.ifnot + ')';
                             }
 
                             //First evaluate if
@@ -201,8 +208,18 @@
 
                     //HTML comment node
                     if (node.nodeType === 8) {
-                        //Process if statement
                         var stmt = node.data.trim();
+
+                        //Convert ifnot: (...) to if: !(...)
+                        if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
+                            stmt = match[1] + ': !(' + match[2] + ')';
+                        }
+                        //Convert /ifnot to /if
+                        if ((match = stmt.match(/^\/(ifnot)/))) {
+                            stmt = '/if';
+                        }
+
+                        //Process if statement
                         if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
                             if (!foreachOpen) {
                                 val = saferEval(match[2], context, data, node);
