@@ -103,7 +103,8 @@
 
                     var val, match, tempFrag, inner;
                     if (node.nodeType === 1 && !foreachOpen) { //element
-                        var bindOpts = node.getAttribute('data-bind'), attributes;
+                        var bindOpts = node.getAttribute('data-bind');
+
                         if (bindOpts) {
                             node.removeAttribute('data-bind');
                             var bindings = this.parseObjectLiteral(bindOpts),
@@ -113,15 +114,17 @@
                             if (descendantBindings > 1) {
                                 throw new Error('Multiple bindings (if,ifnot,foreach,text and/or html) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
                             }
+                        }
 
+                        this.forEachObjectLiteral(bindOpts, function (binding, value) {
                             //Convert ifnot: (...) to if: !(...)
-                            if (bindings.ifnot) {
-                                bindings['if'] = '!(' + bindings.ifnot + ')';
+                            if (binding === 'ifnot') {
+                                value = '!(' + value + ')';
                             }
 
                             //First evaluate if
-                            if (bindings['if']) {
-                                val = saferEval(bindings['if'], context, data, node);
+                            if (binding === 'if') {
+                                val = saferEval(value, context, data, node);
                                 if (!val) {
                                     toRemove = toRemove.concat(this.slice(node.childNodes));
                                     return 'continue';
@@ -129,16 +132,15 @@
                                 return;
                             }
 
-                            if (bindings.foreach) {
-                                inner = bindings.foreach;
-                                if (inner[0] === '{') {
-                                    inner = this.parseObjectLiteral(inner);
+                            if (binding === 'foreach') {
+                                if (value[0] === '{') {
+                                    inner = this.parseObjectLiteral(value);
                                     val = {
                                         items: saferEval(inner.data, context, data, node),
                                         as: inner.as.slice(1, -1) //strip string quote
                                     };
                                 } else {
-                                    val = {items: saferEval(inner, context, data, node)};
+                                    val = {items: saferEval(value, context, data, node)};
                                 }
                                 tempFrag = document.createDocumentFragment();
                                 this.slice(node.childNodes).forEach(function (n) {
@@ -152,16 +154,16 @@
                                 return;
                             }
 
-                            if (bindings.text && regexMap.DotNotation.test(bindings.text)) {
-                                val = saferEval(bindings.text, context, data, node);
+                            if (binding === 'text' && regexMap.DotNotation.test(value)) {
+                                val = saferEval(value, context, data, node);
                                 if (val !== undefined) {
                                     node.appendChild(document.createTextNode(val));
                                 }
                             }
 
-                            if (bindings.html) {
+                            if (binding === 'html') {
                                 $(node).empty();
-                                val = saferEval(bindings.html, context, data, node);
+                                val = saferEval(value, context, data, node);
                                 if (val) {
                                     tempFrag = document.createDocumentFragment();
                                     $.parseHTML(val).forEach(function (node) {
@@ -172,36 +174,64 @@
                                 return;
                             }
 
-                            if (bindings.attr) {
-                                attributes = parseObjectLiteral(bindings.attr.slice(1, -1));
-                                attributes.forEach(function (tuple) {
-                                    if (regexMap.DotNotation.test(tuple[1])) {
-                                        val = saferEval(tuple[1], context, data, node);
+                            if (binding === 'attr') {
+                                this.forEachObjectLiteral(value.slice(1, -1), function (attr, value) {
+                                    if (regexMap.DotNotation.test(value)) {
+                                        val = saferEval(value, context, data, node);
                                         if (val) {
-                                            node.setAttribute(tuple[0], val);
+                                            node.setAttribute(attr, val);
                                         }
                                     }
                                 });
                             }
 
-                            if (bindings.css) {
-                                var cssProps = parseObjectLiteral(bindings.css.slice(1, -1));
-                                cssProps.forEach(function (tuple) {
-                                    val = saferEval(tuple[1], context, data, node);
+                            if (binding === 'css') {
+                                this.forEachObjectLiteral(value.slice(1, -1), function (className, expr) {
+                                    val = saferEval(expr, context, data, node);
                                     if (val) {
-                                        $(node).addClass(tuple[0]);
+                                        $(node).addClass(className);
                                     }
                                 });
                             }
 
-                            if (bindings.style) {
-                                var styleProps = parseObjectLiteral(bindings.style.slice(1, -1));
-                                styleProps.forEach(function (tuple) {
-                                    val = saferEval(tuple[1], context, data, node) || null;
-                                    node.style.setProperty(tuple[0].replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
+                            if (binding === 'style') {
+                                this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
+                                    val = saferEval(value, context, data, node) || null;
+                                    node.style.setProperty(prop.replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
                                 });
                             }
-                        }
+
+                            //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
+
+                            if (binding === 'disable' || binding === 'enable') {
+                                var disable = (binding === 'disable' ? value : !value);
+                                if (disable) {
+                                    node.setAttribute('disabled', 'disabled');
+                                } else {
+                                    node.removeAttribute('disabled');
+                                }
+                            }
+
+                            if (binding === 'checked') {
+                                if (value) {
+                                    node.setAttribute('checked', 'checked');
+                                } else {
+                                    node.removeAttribute('checked');
+                                }
+                            }
+
+                            if (binding === 'value') {
+                                node.setAttribute('value', value);
+                            }
+
+                            if (binding === 'visible') {
+                                if (value) {
+                                    node.style.removeProperty('display');
+                                } else {
+                                    node.style.setProperty('display', 'none');
+                                }
+                            }
+                        }, this);
                     } else if (node.nodeType === 1 && foreachOpen) {
                         return 'continue';
                     }
@@ -382,6 +412,17 @@
                 obj[tuple[0]] = tuple[1];
             });
             return obj;
+        },
+
+        /**
+         * @private
+         */
+        forEachObjectLiteral: function (objectLiteral, callback, scope) {
+            if (objectLiteral) {
+                parseObjectLiteral(objectLiteral).forEach(function (tuple) {
+                    callback.call(scope, tuple[0], tuple[1]);
+                });
+            }
         }
     };
 
