@@ -134,7 +134,6 @@
                                     toRemove = toRemove.concat(this.slice(node.childNodes));
                                     return 'continue';
                                 }
-                                return;
                             }
 
                             if (binding === 'foreach') {
@@ -156,7 +155,21 @@
                                     tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
                                     node.appendChild(tempFrag);
                                 }
-                                return;
+                            }
+
+                            if (binding === 'with') {
+                                val = saferEval(value, context, data, node);
+
+                                tempFrag = document.createDocumentFragment();
+                                this.slice(node.childNodes).forEach(function (n) {
+                                    n.parentNode.removeChild(n);
+                                    tempFrag.appendChild(n);
+                                });
+
+                                if (tempFrag.firstChild && val) {
+                                    var newContext = this.getNewContext(context, val);
+                                    node.appendChild((new Htmlizer(tempFrag)).toDocumentFragment(val, newContext));
+                                }
                             }
 
                             if (binding === 'text' && regexMap.DotNotation.test(value)) {
@@ -176,7 +189,6 @@
                                     }, this);
                                     node.appendChild(tempFrag);
                                 }
-                                return;
                             }
 
                             if (binding === 'attr') {
@@ -365,24 +377,11 @@
             var output = document.createDocumentFragment(),
                 template = new Htmlizer(fragment);
             items.forEach(function (item, index) {
-                var newContext = {
-                    $root: context.$root,
-                    $parent: data,
-                    $parentContext: context,
-                    $parents: ([data]).concat(context.$parents),
-                    $data: item,
-                    $rawData: item,
-                    //foreach specific
-                    $index: index
-                };
+                var newContext = this.getNewContext(context, data);
+                //foreach special properties
+                newContext.$data = newContext.$rawData = item;
+                newContext.$index = index;
 
-                //Copy 'as' references from parent. This is done recursively, so it will have all the 'as' references from ancestors.
-                if (context._as) {
-                    newContext._as = context._as.slice();
-                    newContext._as.forEach(function (tuple) {
-                        newContext[tuple[0]] = tuple[1];
-                    });
-                }
                 if (as) {
                     newContext[as] = item;
                     //Add to _as so that sub templates can access them.
@@ -392,8 +391,31 @@
 
                 //..finally execute
                 output.appendChild(template.toDocumentFragment(item, newContext));
-            });
+            }, this);
             return output;
+        },
+
+        /**
+         * @private
+         */
+        getNewContext: function (parentContext, data) {
+            var newContext = {
+                $root: parentContext.$root,
+                $parent: parentContext.$data,
+                $parentContext: parentContext,
+                $parents: ([data]).concat(parentContext.$parents),
+                $data: data,
+                $rawData: data
+            };
+
+            //Copy 'as' references from parent. This is done recursively, so it will have all the 'as' references from ancestors.
+            if (parentContext._as) {
+                newContext._as = parentContext._as.slice();
+                newContext._as.forEach(function (tuple) {
+                    newContext[tuple[0]] = tuple[1];
+                });
+            }
+            return newContext;
         },
 
         /**
