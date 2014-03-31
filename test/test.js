@@ -167,6 +167,26 @@ describe('run "ifnot" binding test', function () {
     });
 });
 
+describe('run inline "with" binding test', function () {
+    var html = fetch('test/with-inline-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            obj: {
+                val: 10
+            }
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    var count = 0;
+    traverse(df, df, function (node, isOpenTag) {
+        if (isOpenTag && node.nodeType === 1 && node.nodeName === 'SPAN' &&
+            node.textContent === "10") {
+            count += 1;
+        }
+    });
+    it('it should have 4 SPANs with "10" as text content', function () {
+        assert.equal(4, count);
+    });
+});
+
 
 /*Utility functions*/
 function fetch(pathToTextFile) {

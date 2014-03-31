@@ -108,12 +108,21 @@
                 }]
             }));
 
-            //Test 9 - ifnot
-            console.info('Test 9 - ifnot');
+            //Test 9 - ifnot binding
+            console.info('Test 9 - ifnot binding');
             var text = fetch('ifnot-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Howdy!',
                 cls: 'btn btn-default' //bootstrap 3 button css class
+            }));
+
+            //Test 10 - with binding
+            console.info('Test 10 - with binding');
+            var text = fetch('with-inline-tpl.html');
+            console.log((new Htmlizer(text)).toString({
+                obj: {
+                    val: 10
+                }
             }));
 
         </script>
