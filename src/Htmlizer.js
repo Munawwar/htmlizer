@@ -27,10 +27,10 @@
     var document = window.document;
 
     function unwrap(str) {
-        var arr = str.split(','), val, o = {};
-        while ((val = arr.pop())) {
+        var o = {};
+        str.split(',').forEach(function (val) {
             o[val] = true;
-        }
+        });
         return o;
     }
 
@@ -55,6 +55,8 @@
         "ifnot": new RegExp("(?:(ko[ ]+ifnot|ifnot):(.+))"),
         foreach: new RegExp("(?:(ko[ ]+foreach|foreach):(.+))")
     };
+
+    var conflictingBindings = unwrap('if,ifnot,foreach,text,html');
 
     /**
      * @param {String|DocumentFragment} template If string, then it is better if the HTML is balanced, else it probably won't be correctly converted to DOM.
@@ -107,12 +109,15 @@
 
                         if (bindOpts) {
                             node.removeAttribute('data-bind');
-                            var bindings = this.parseObjectLiteral(bindOpts),
-                                descendantBindings = (bindings['if'] ? 1 : 0) + (bindings.ifnot ? 1 : 0) + (bindings.foreach ? 1 : 0) +
-                                    (bindings.text ? 1 : 0) + (bindings.html ? 1 : 0);
-
-                            if (descendantBindings > 1) {
-                                throw new Error('Multiple bindings (if,ifnot,foreach,text and/or html) are trying to control descendant bindings of the same element. You cannot use these bindings together on the same element.');
+                            var conflict = [];
+                            this.forEachObjectLiteral(bindOpts, function (binding) {
+                                if (binding in conflictingBindings) {
+                                    conflict.push(binding);
+                                }
+                            });
+                            if (conflict.length > 1) {
+                                throw new Error('Multiple bindings (' + conflict[0] + ' and ' + conflict[1] + ') are trying to control descendant bindings of the same element.' +
+                                    'You cannot use these bindings together on the same element.');
                             }
                         }
 
