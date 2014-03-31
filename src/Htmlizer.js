@@ -341,13 +341,9 @@
                         this.slice(node.attributes).forEach(function (attr) {
                             html += ' ' + attr.name + '="' + attr.value + '"';
                         });
-                        html += '>';
-                    } else {
-                        if (voidTags[tag]) {
-                            html += '/>';
-                        } else {
-                            html += '</' + tag + '>';
-                        }
+                        html += (voidTags[tag] ? '/>' : '>');
+                    } else if (!voidTags[tag]) {
+                        html += '</' + tag + '>';
                     }
                 }
                 if (isOpenTag && node.nodeType === 3) {
