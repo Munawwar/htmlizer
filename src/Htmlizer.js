@@ -175,6 +175,7 @@
                             if (binding === 'text' && regexMap.DotNotation.test(value)) {
                                 val = saferEval(value, context, data, node);
                                 if (val !== undefined) {
+                                    node.innerHTML = ''; //KO nukes the inner content.
                                     node.appendChild(document.createTextNode(val));
                                 }
                             }
