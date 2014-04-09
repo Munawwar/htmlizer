@@ -1,12 +1,12 @@
 {
-   "name": "htmlizer",
-   "description": "HTML Templates",
-   "version": "0.0.1",
-   "main": "src/Htmlizer.js",
-   "dependencies": {
-      "jsdom": "0.10.3"
-   },
-   "devDependencies": {
+    "name": "htmlizer",
+    "description": "HTML Templates",
+    "version": "0.0.1",
+    "main": "src/Htmlizer.js",
+    "dependencies": {
+        "jsdom": "0.10.3"
+    },
+    "devDependencies": {
       "mocha": "1.18.2"
-   }
+    }
 }
