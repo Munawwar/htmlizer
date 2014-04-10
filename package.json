@@ -8,6 +8,26 @@
         "jsdom": "0.10.3"
     },
     "devDependencies": {
-      "mocha": "1.18.2"
-    }
+        "mocha": "1.18.2"
+    },
+    "directories": {
+        "test": "test"
+    },
+    "scripts": {
+        "test": "make test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Munawwar/htmlizer"
+    },
+    "keywords": [
+        "html",
+        "knockout",
+        "templates"
+    ],
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/Munawwar/htmlizer/issues"
+    },
+    "homepage": "https://github.com/Munawwar/htmlizer"
 }
