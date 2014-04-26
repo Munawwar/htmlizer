@@ -86,22 +86,58 @@
             }
 
             var stack = [], //Keep track of ifs and fors
-                block = [],
-                foreachOpen = false,
-                blockNestingCount = 0,
-                toRemove = []; //use this to remove nodes within if statement that are false.
+                blocks = [],
+                block;
+
+            //Before evaluating, determine the nesting structure for containerless statements.
             traverse(frag, frag, function (node, isOpenTag) {
-                if (isOpenTag) {
-                    if (stack[0] && stack[0].key === 'if' && !stack[0].val) {
-                        toRemove.push(node);
-                        return 'continue';
+                if (isOpenTag && node.nodeType === 8) {
+                    var stmt = node.data.trim(), match;
+
+                    //Convert ifnot: (...) to if: !(...)
+                    if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
+                        stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
                     }
-                    if (foreachOpen) {
-                        block.push(node);
+                    //Convert /ifnot to /if
+                    if ((match = stmt.match(/^\/(ifnot)$/))) {
+                        stmt = '/if';
                     }
 
+                    //Process if statement
+                    if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
+                        stack.unshift({
+                            key: 'if',
+                            start: node
+                        });
+                    } else if ((/^((ko[ ]+foreach)|foreach):/).test(stmt) && (match = stmt.match(syntaxRegex.foreach))) {
+                        stack.unshift({
+                            key: 'foreach',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(/^\/(ko|if|foreach)$/))) {
+                        block = stack.shift();
+                        if (block && (match[1] === 'ko' || match[1] === block.key)) {
+                            block.end = node;
+                            blocks.push(block);
+                        } else if (block && match[1] !== block.key) {
+                            throw new Error('Missing end tag for ' + stack[0].start.data.trim());
+                        } else {
+                            console.warn('Extra end tag found.');
+                        }
+                    }
+                }
+            }, this);
+            if (stack.length) {
+                throw new Error('Missing end tag for ' + stack[0].start.data.trim());
+            }
+
+            //Evaluate
+            var toRemove = [], //use this to remove nodes within if statement that are false.
+                blockNodes;
+            traverse(frag, frag, function (node, isOpenTag) {
+                if (isOpenTag) {
                     var val, match, tempFrag, inner;
-                    if (node.nodeType === 1 && !foreachOpen) { //element
+                    if (node.nodeType === 1) { //element
                         var bindOpts = node.getAttribute('data-bind');
 
                         if (bindOpts) {
@@ -235,8 +271,6 @@
                                 }
                             }
                         }, this);
-                    } else if (node.nodeType === 1 && foreachOpen) {
-                        return 'continue';
                     }
 
                     //HTML comment node
@@ -254,61 +288,41 @@
 
                         //Process if statement
                         if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
-                            if (!foreachOpen) {
-                                val = saferEval(match[2], context, data, node);
-                                stack.unshift({
-                                    key: 'if',
-                                    val: val
+                            val = saferEval(match[2], context, data, node);
+
+                            block = this.findBlockFromStartNode(blocks, node);
+                            toRemove.push(node);
+                            toRemove.push(block.end);
+
+                            if (!val) {
+                                blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                                blockNodes.forEach(function (n) {
+                                    n.parentNode.removeChild(n);
                                 });
-                                toRemove.push(node);
-                            } else {
-                                //no need to evaluate this if foreachOpen, because it is added to
-                                //'blocks' and will be evaluated later
-                                blockNestingCount += 1;
                             }
                         } else if ((/^((ko[ ]+foreach)|foreach):/).test(stmt) && (match = stmt.match(syntaxRegex.foreach))) {
-                            if (!foreachOpen) {
-                                foreachOpen = true;
-                                inner = match[2].trim();
-                                if (inner[0] === '{') {
-                                    inner = this.parseObjectLiteral(inner);
-                                    val = {
-                                        items: saferEval(inner.data, context, data, node),
-                                        as: inner.as.slice(1, -1) //strip string quote
-                                    };
-                                } else {
-                                    val = {items: saferEval(inner, context, data, node)};
-                                }
-                                stack.unshift({
-                                    key: 'foreach',
-                                    val: val
-                                });
-                                toRemove.push(node);
+                            inner = match[2].trim();
+                            if (inner[0] === '{') {
+                                inner = this.parseObjectLiteral(inner);
+                                val = {
+                                    items: saferEval(inner.data, context, data, node),
+                                    as: inner.as.slice(1, -1) //strip string quote
+                                };
                             } else {
-                                blockNestingCount += 1;
-                            }
-                        } else if ((match = stmt.match(/^\/(ko|if|foreach)$/))) {
-                            //TODO: Check for unbalanced ifs/fors
-                            if ((/^\/(ko|foreach)$/).test(stmt) && stack[0] &&
-                                stack[0].key === 'foreach' && blockNestingCount === 0) {
-                                foreachOpen = false;
-
-                                block.pop(); //remove end tag from block
-                                tempFrag = this.moveToNewFragment(block);
-                                block = [];
-
-                                if (tempFrag.firstChild && stack[0].val.items instanceof Array) {
-                                    val = stack[0].val;
-                                    tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
-                                    node.parentNode.insertBefore(tempFrag, node);
-                                }
+                                val = {items: saferEval(inner, context, data, node)};
                             }
 
-                            if (!foreachOpen) {
-                                stack.shift();
-                                toRemove.push(node);
-                            } else {
-                                blockNestingCount -= 1;
+                            //Create a new htmlizer instance, render it and insert berfore this node.
+                            block = this.findBlockFromStartNode(blocks, node);
+                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                            tempFrag = this.moveToNewFragment(blockNodes);
+
+                            toRemove.push(node);
+                            toRemove.push(block.end);
+
+                            if (tempFrag.firstChild && val.items instanceof Array) {
+                                tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
+                                node.parentNode.insertBefore(tempFrag, node);
                             }
                         }
                     }
@@ -440,6 +454,32 @@
                     callback.call(scope, tuple[0], tuple[1]);
                 });
             }
+        },
+
+        /**
+         * @private
+         * Get all immediate nodes between two given nodes.
+         */
+        getImmediateNodes: function (frag, startNode, endNode) {
+            var nodes = [];
+            traverse(startNode, frag, function (node, isOpenTag) {
+                if (isOpenTag) {
+                    if (node === endNode) {
+                        return 'halt';
+                    }
+                    nodes.push(node);
+                }
+            });
+            return nodes;
+        },
+
+        /**
+         * @private
+         */
+        findBlockFromStartNode: function (blocks, node) {
+            return blocks.filter(function (block) {
+                return block.start === node;
+            })[0] || null;
         }
     };
 

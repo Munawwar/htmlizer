@@ -51,8 +51,8 @@ describe('run container-less nested "if" statement test', function () {
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('it should have 2 HTMLElements', function () {
-        assert.equal(2, countElements(df));
+    it('it should have 3 HTMLElements', function () {
+        assert.equal(3, countElements(df));
     });
     it('button element should have text in it', function () {
         assert.equal('Howdy!', findElementByClassName(df, 'btn').firstChild.nodeValue);
