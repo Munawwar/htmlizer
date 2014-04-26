@@ -63,10 +63,7 @@
      */
     function Htmlizer(template) {
         if (typeof template === 'string') {
-            this.frag = document.createDocumentFragment();
-            $.parseHTML(template).forEach(function (node) {
-                this.frag.appendChild(node);
-            }, this);
+            this.frag = this.moveToNewFragment($.parseHTML(template));
         } else { //assuming DocumentFragment
             this.frag = template;
         }
@@ -146,11 +143,7 @@
                                 } else {
                                     val = {items: saferEval(value, context, data, node)};
                                 }
-                                tempFrag = document.createDocumentFragment();
-                                this.slice(node.childNodes).forEach(function (n) {
-                                    n.parentNode.removeChild(n);
-                                    tempFrag.appendChild(n);
-                                });
+                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
                                 if (tempFrag.firstChild && val.items instanceof Array) {
                                     tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
                                     node.appendChild(tempFrag);
@@ -160,12 +153,7 @@
                             if (binding === 'with') {
                                 val = saferEval(value, context, data, node);
 
-                                tempFrag = document.createDocumentFragment();
-                                this.slice(node.childNodes).forEach(function (n) {
-                                    n.parentNode.removeChild(n);
-                                    tempFrag.appendChild(n);
-                                });
-
+                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
                                 if (tempFrag.firstChild && val) {
                                     var newContext = this.getNewContext(context, val);
                                     node.appendChild((new Htmlizer(tempFrag)).toDocumentFragment(val, newContext));
@@ -184,10 +172,7 @@
                                 $(node).empty();
                                 val = saferEval(value, context, data, node);
                                 if (val) {
-                                    tempFrag = document.createDocumentFragment();
-                                    $.parseHTML(val).forEach(function (node) {
-                                        tempFrag.appendChild(node);
-                                    }, this);
+                                    tempFrag = this.moveToNewFragment($.parseHTML(val));
                                     node.appendChild(tempFrag);
                                 }
                             }
@@ -308,12 +293,8 @@
                                 stack[0].key === 'foreach' && blockNestingCount === 0) {
                                 foreachOpen = false;
 
-                                tempFrag = document.createDocumentFragment();
                                 block.pop(); //remove end tag from block
-                                block.forEach(function (n) {
-                                    n.parentNode.removeChild(n);
-                                    tempFrag.appendChild(n);
-                                });
+                                tempFrag = this.moveToNewFragment(block);
                                 block = [];
 
                                 if (tempFrag.firstChild && stack[0].val.items instanceof Array) {
@@ -417,6 +398,18 @@
                 });
             }
             return newContext;
+        },
+
+        /**
+         * @private
+         * @param {Array[Node]} nodes
+         */
+        moveToNewFragment: function (nodes) {
+            var frag = document.createDocumentFragment();
+            nodes.forEach(function (n) {
+                frag.appendChild(n);
+            });
+            return frag;
         },
 
         /**
