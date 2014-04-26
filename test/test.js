@@ -159,11 +159,8 @@ describe('run "ifnot" binding test', function () {
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('it should have 2 HTMLElements', function () {
-        assert.equal(2, countElements(df));
-    });
-    it('button element should have text in it', function () {
-        assert.equal('Howdy!', findElementByClassName(df, 'btn').firstChild.nodeValue);
+    it('it should have 1 HTMLElements', function () {
+        assert.equal(1, countElements(df));
     });
 });
 

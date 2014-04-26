@@ -260,7 +260,7 @@
 
                         //Convert ifnot: (...) to if: !(...)
                         if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
-                            stmt = match[1] + ': !(' + match[2] + ')';
+                            stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
                         }
                         //Convert /ifnot to /if
                         if ((match = stmt.match(/^\/(ifnot)/))) {
