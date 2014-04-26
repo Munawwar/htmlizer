@@ -263,7 +263,7 @@
                             stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
                         }
                         //Convert /ifnot to /if
-                        if ((match = stmt.match(/^\/(ifnot)/))) {
+                        if ((match = stmt.match(/^\/(ifnot)$/))) {
                             stmt = '/if';
                         }
 
@@ -302,9 +302,9 @@
                             } else {
                                 blockNestingCount += 1;
                             }
-                        } else if ((match = stmt.match(/^\/(ko|if|foreach)/))) {
+                        } else if ((match = stmt.match(/^\/(ko|if|foreach)$/))) {
                             //TODO: Check for unbalanced ifs/fors
-                            if ((/^\/(ko|foreach)/).test(stmt) && stack[0] &&
+                            if ((/^\/(ko|foreach)$/).test(stmt) && stack[0] &&
                                 stack[0].key === 'foreach' && blockNestingCount === 0) {
                                 foreachOpen = false;
 
