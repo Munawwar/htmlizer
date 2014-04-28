@@ -468,6 +468,7 @@
                         return 'halt';
                     }
                     nodes.push(node);
+                    return 'continue';
                 }
             });
             return nodes;
