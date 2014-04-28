@@ -63,7 +63,7 @@
      */
     function Htmlizer(template) {
         if (typeof template === 'string') {
-            this.frag = this.moveToNewFragment($.parseHTML(template));
+            this.frag = this.moveToNewFragment($.parseHTML(template, document, true));
         } else { //assuming DocumentFragment
             this.frag = template;
         }
