@@ -16,7 +16,7 @@ Most templating languages doesn't ensure that the templates are valid HTML. Temp
 For example consider this Mustache template: `<div {{attributes}}></div>`.
 This looks sane, but is unfortunately not parsable by most HTML parsers.
 
-Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid style attribute syntax and some parsers (I think jsdom) may throw an error.
+Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid CSS syntax and some parsers (I think jsdom) may throw an error.
 
 Usage
 -----
