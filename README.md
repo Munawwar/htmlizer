@@ -9,6 +9,15 @@ Dependencies:
 - https://github.com/mbest/js-object-literal-parse
 - On NodeJS, jsdom will also be required.
 
+Why?
+-----
+Most templating languages doesn't ensure that the templates are valid HTML. Templates needs to be parsable for build tools like assetgraph-builder to able to 1. find assets and relations 2. Translate text with their data-i18n syntax.
+
+For example consider this Mustache template: `<div {{attributes}}></div>`.
+This looks sane, but is unfortunately not parsable by most HTML parsers.
+
+Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid style attribute syntax and some parsers (I think jsdom) may throw an error.
+
 Usage
 -----
 
