@@ -125,6 +125,14 @@
                 }
             }));
 
+            //Test 11 - No conflict test
+            console.info('Test 11 - No conflict test');
+            var text = fetch('noconflict.html');
+            console.log((new Htmlizer(text, {noConflict: true})).toString({
+                btnText: 'Howdy!',
+                cls: 'btn btn-default' //bootstrap 3 button css class
+            }));
+
         </script>
     </body>
 </html>

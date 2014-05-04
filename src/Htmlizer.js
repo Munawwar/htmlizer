@@ -60,8 +60,12 @@
 
     /**
      * @param {String|DocumentFragment} template If string, then it is better if the HTML is balanced, else it probably won't be correctly converted to DOM.
+     * @param {Object} cfg
+     * @param {Object} cfg.noConflict Will ensure Htmlizer doesn't conflict with KnockoutJS. i.e data-htmlizer attribute will be used and
+     * containerless statements beginning and ending with "ko" prefix will be ignored.
      */
-    function Htmlizer(template) {
+    function Htmlizer(template, cfg) {
+        $.extend(this, cfg);
         if (typeof template === 'string') {
             this.frag = this.moveToNewFragment($.parseHTML(template, document, true));
         } else { //assuming DocumentFragment
@@ -93,6 +97,11 @@
             traverse(frag, frag, function (node, isOpenTag) {
                 if (isOpenTag && node.nodeType === 8) {
                     var stmt = node.data.trim(), match;
+
+                    //Ignore all containerless statements beginning with "ko" if noConflict = true.
+                    if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
+                        return;
+                    }
 
                     //Convert ifnot: (...) to if: !(...)
                     if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
@@ -138,10 +147,10 @@
                 if (isOpenTag) {
                     var val, match, tempFrag, inner;
                     if (node.nodeType === 1) { //element
-                        var bindOpts = node.getAttribute('data-bind');
+                        var bindOpts = node.getAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
 
                         if (bindOpts) {
-                            node.removeAttribute('data-bind');
+                            node.removeAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
                             var conflict = [];
                             this.forEachObjectLiteral(bindOpts, function (binding) {
                                 if (binding in conflictingBindings) {
@@ -277,6 +286,11 @@
                     if (node.nodeType === 8) {
                         var stmt = node.data.trim();
 
+                        //Ignore all containerless statements beginning with "ko" if noConflict = true.
+                        if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
+                            return;
+                        }
+
                         //Convert ifnot: (...) to if: !(...)
                         if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
                             stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
@@ -357,6 +371,9 @@
                 if (isOpenTag && node.nodeType === 3) {
                     //escape <,> and &.
                     html += (node.nodeValue || '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                }
+                if (isOpenTag && node.nodeType === 8) {
+                    html += '<!-- ' + node.data.trim() + ' -->';
                 }
             }, this);
             return html;

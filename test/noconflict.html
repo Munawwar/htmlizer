@@ -1,0 +1,11 @@
+<div>
+    <!-- if: btnText[0] -->
+        <!-- if: btnText.length > 0 -->
+        <button data-htmlizer="text: btnText, attr: {class: cls}"></button>
+        <!-- /if -->
+    <!-- /if -->
+    <!-- ko if: btnText.length < 0 -->
+        <button data-bind="text: btnText, attr: {class: cls}"></button>
+    <!-- /ko -->
+    <p>Test</p>
+</div>
