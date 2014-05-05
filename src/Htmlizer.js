@@ -65,6 +65,7 @@
      * containerless statements beginning and ending with "ko" prefix will be ignored.
      */
     function Htmlizer(template, cfg) {
+        this.cfg = cfg;
         $.extend(this, cfg);
         if (typeof template === 'string') {
             this.frag = this.moveToNewFragment($.parseHTML(template, document, true));
@@ -201,7 +202,7 @@
                                 tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
                                 if (tempFrag.firstChild && val) {
                                     var newContext = this.getNewContext(context, val);
-                                    node.appendChild((new Htmlizer(tempFrag)).toDocumentFragment(val, newContext));
+                                    node.appendChild((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext));
                                 }
                             }
 
@@ -388,7 +389,7 @@
          */
         executeForEach: function (fragment, context, data, items, as) {
             var output = document.createDocumentFragment(),
-                template = new Htmlizer(fragment);
+                template = new Htmlizer(fragment, this.cfg);
             items.forEach(function (item, index) {
                 var newContext = this.getNewContext(context, data);
                 //foreach special properties

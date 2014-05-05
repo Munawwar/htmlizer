@@ -185,7 +185,7 @@ describe('run inline "with" binding test', function () {
 });
 
 describe('run no conflict test', function () {
-    var html = fetch('test/noconflict.html'),
+    var html = fetch('test/noconflict-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
             btnText: 'Howdy!',
             cls: 'btn btn-default' //bootstrap 3 button css class
@@ -228,6 +228,27 @@ describe('run no conflict test', function () {
     });
 });
 
+describe('run no conflict sub-template test', function () {
+    var html = fetch('test/noconflict-subtemplate-tpl.html'),
+        outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
+            items: [{
+                name: 'item1',
+                subItems: [{
+                    name: 'subitem1'
+                }, {
+                    name: 'subitem2'
+                }]
+            }, {
+                name: 'item2'
+            }, {
+                name: 'item3'
+            }]
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have 6 HTMLElements', function () {
+        assert.equal(6, countElements(df));
+    });
+});
 
 /*Utility functions*/
 function fetch(pathToTextFile) {

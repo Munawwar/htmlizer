@@ -127,10 +127,28 @@
 
             //Test 11 - No conflict test
             console.info('Test 11 - No conflict test');
-            var text = fetch('noconflict.html');
+            var text = fetch('noconflict-tpl.html');
             console.log((new Htmlizer(text, {noConflict: true})).toString({
                 btnText: 'Howdy!',
                 cls: 'btn btn-default' //bootstrap 3 button css class
+            }));
+
+            //Test 12 - No conflict sub-template test
+            console.info('Test 12 - No conflict sub-template test');
+            var text = fetch('noconflict-subtemplate-tpl.html');
+            console.log((new Htmlizer(text, {noConflict: true})).toString({
+                items: [{
+                    name: 'item1',
+                    subItems: [{
+                        name: 'subitem1'
+                    }, {
+                        name: 'subitem2'
+                    }]
+                }, {
+                    name: 'item2'
+                }, {
+                    name: 'item3'
+                }]
             }));
 
         </script>
