@@ -31,7 +31,6 @@ Render template as DocumentFragment:
 (new Htmlizer('<template string>')).toDocumentFragment(dataObject);
 ```
 
-
 Template syntax
 -----
 Syntax is similar to KnockoutJS (in fact supports a subset of Knockout templates).
@@ -46,13 +45,13 @@ Data: {mytext: 'test'}
 Output: <span>test</span>
 ```
 
-#### *attr* binding:  
+#### *attr* binding:
 
 ```
 Template: <span data-bind="text: mytext, attr: {class: cls}"></span>
 
 Data: {mytext: 'test', cls: 'btn btn-default'}
-  
+
 Output: <span class="btn btn-default">test</span>
 ```
 
@@ -94,7 +93,7 @@ Template:
     <div data-bind="text: $data"></div>
 </div>
 
-Data: 
+Data:
 {
   items: ['item 1', 'item 2', 'item 3']
 }
@@ -138,3 +137,33 @@ Data: {message: '<b>This</b> is a <b>serious message</b>'}
 
 Output: <div><b>This</b> is a <b>serious message</b></div>
 ```
+
+#### *css* binding:
+```
+Template:
+<div data-bind="css: {warning: isWarning}"></div>
+
+Data: {isWarning: true}
+
+Output: <div class="warning"></div>
+```
+
+#### *style* binding:
+```
+Template:
+<div data-bind="style: {fontWeight: bold ? 'bold' : 'normal'}"></div>
+
+Data: {bold: false}
+
+Output: <div style="font-weight: normal;"></div>
+```
+
+No Conflict
+-----
+To avoid conflict with KnockoutJS, set noConflict config to true:
+```
+var template = new Htmlizer('<template string>', {noConflict: true});
+```
+By default noConflict is false. With noConflict = true, there are two main differences:
+1. Bindings must be placed within data-htmlizer attribute.
+2. Containerless statements with "ko" prefix will be ignored. Use without "ko" prefix if you want Htmlizer to process it.
