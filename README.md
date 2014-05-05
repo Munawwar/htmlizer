@@ -158,12 +158,13 @@ Data: {bold: false}
 Output: <div style="font-weight: normal;"></div>
 ```
 
-No Conflict
+Avoiding conflict with KO
 -----
 To avoid conflict with KnockoutJS, set noConflict config to true:
 ```
 var template = new Htmlizer('<template string>', {noConflict: true});
 ```
-By default noConflict is false. With noConflict = true, there are two main differences:
-1. Bindings must be placed within data-htmlizer attribute.
-2. Containerless statements with "ko" prefix will be ignored. Use without "ko" prefix if you want Htmlizer to process it.
+By default noConflict is assumed false. With noConflict = true, there are two main differences:
+
+- Bindings must be placed within data-htmlizer attribute.
+- Containerless statements with "ko" prefix will be ignored. Use without "ko" prefix if you want Htmlizer to process it.
