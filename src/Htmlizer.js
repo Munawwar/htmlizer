@@ -68,7 +68,7 @@
         this.cfg = cfg;
         $.extend(this, cfg);
         if (typeof template === 'string') {
-            this.frag = this.moveToNewFragment($.parseHTML(template, document, true));
+            this.frag = this.moveToNewFragment(this.parseHTML(template));
         } else { //assuming DocumentFragment
             this.frag = template;
         }
@@ -218,7 +218,7 @@
                                 $(node).empty();
                                 val = saferEval(value, context, data, node);
                                 if (val) {
-                                    tempFrag = this.moveToNewFragment($.parseHTML(val));
+                                    tempFrag = this.moveToNewFragment(this.parseHTML(val));
                                     node.appendChild(tempFrag);
                                 }
                             }
@@ -430,6 +430,15 @@
                 });
             }
             return newContext;
+        },
+
+        /**
+         * Parse html string using jQuery.parseHTML and also make sure script tags aren't removed.
+         * @param {String} html
+         * @private
+         */
+        parseHTML: function (html) {
+            return $.parseHTML(html, document, true);
         },
 
         /**
