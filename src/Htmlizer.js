@@ -227,7 +227,7 @@
                                 this.forEachObjectLiteral(value.slice(1, -1), function (attr, value) {
                                     if (regexMap.DotNotation.test(value)) {
                                         val = saferEval(value, context, data, node);
-                                        if (val) {
+                                        if (typeof val === 'string' || typeof val === 'number') {
                                             node.setAttribute(attr, val);
                                         }
                                     }
