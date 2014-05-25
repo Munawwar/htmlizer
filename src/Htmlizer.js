@@ -11,17 +11,17 @@
         var jsdom = require('jsdom').jsdom,
             window = jsdom('').parentWindow;
         module.exports = factory(
+            saferEval,
             require('./jquery')(window),
             require('./js-object-literal-parse.js'),
-            saferEval,
             window
         );
     } else if (typeof define === 'function' && define.amd) {
-        define(['jquery', './js-object-literal-parse'], factory, saferEval);
+        define(['jquery', './js-object-literal-parse'], factory.bind(this, saferEval));
     } else {
-        root.Htmlizer = factory(root.jQuery, root.parseObjectLiteral, saferEval);
+        root.Htmlizer = factory(saferEval, root.jQuery, root.parseObjectLiteral);
     }
-}(this, function ($, parseObjectLiteral, saferEval, window) {
+}(this, function (saferEval, $, parseObjectLiteral, window) {
     //browser and jsdom compatibility
     window = window || this;
     var document = window.document;
