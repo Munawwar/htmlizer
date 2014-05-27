@@ -1,11 +1,11 @@
 <div data-bind="foreach: {data: items, as: 'obj'}">
     <div data-bind="text: $data.name"></div>
-    <!-- foreach: {data: subItems, as: 'obj2' } -->
+    <!-- ko foreach: {data: subItems, as: 'obj2' } -->
         <span data-bind="text: obj.name"></span>
         <span> - </span>
         <span data-bind="text: obj2.name"></span>
         <span> - </span>
         <span data-bind="text: name"></span>
-    <!-- /foreach -->
+    <!-- /ko -->
     <div data-bind="text: name"></div>
 </div>

@@ -1,5 +1,5 @@
 <div data-bind="foreach: {data: items, as: 'obj'}">
-    <!-- foreach: subItems -->
+    <!-- ko foreach: subItems -->
         <span data-bind="text: $element.nodeName"></span>
         <span data-bind="text: obj.name"></span>
         <span data-bind="text: $parent.name"></span>
@@ -7,5 +7,5 @@
         <span data-bind="text: $data.name"></span>
         <span data-bind="text: name"></span>
         <span data-bind="text: $root === $parents[$parents.length - 1]"></span>
-    <!-- /foreach -->
+    <!-- /ko -->
 </div>

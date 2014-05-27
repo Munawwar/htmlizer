@@ -51,9 +51,9 @@
 
     //Valid statements.
     var syntaxRegex = {
-        "if": new RegExp("(?:(ko[ ]+if|if):(.+))"),
-        "ifnot": new RegExp("(?:(ko[ ]+ifnot|ifnot):(.+))"),
-        foreach: new RegExp("(?:(ko[ ]+foreach|foreach):(.+))")
+        "if": new RegExp("((?:ko|hz)[ ]+if):(.+)"),
+        "ifnot": new RegExp("((?:ko|hz)[ ]+ifnot):(.+)"),
+        foreach: new RegExp("((?:ko|hz)[ ]+foreach):(.+)")
     };
 
     var conflictingBindings = unwrap('if,ifnot,foreach,text,html');
@@ -68,6 +68,7 @@
         this.cfg = cfg;
         $.extend(this, cfg);
         if (typeof template === 'string') {
+            this.origTplStr = template;
             this.frag = this.moveToNewFragment(this.parseHTML(template));
         } else { //assuming DocumentFragment
             this.frag = template;
@@ -80,7 +81,6 @@
          */
         toDocumentFragment: function (data, context) {
             var frag = this.frag.cloneNode(true);
-
             if (!context) {
                 context = {
                     $parents: [],
@@ -105,32 +105,26 @@
                     }
 
                     //Convert ifnot: (...) to if: !(...)
-                    if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
+                    if ((match = stmt.match(syntaxRegex.ifnot))) {
                         stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
-                    }
-                    //Convert /ifnot to /if
-                    if ((match = stmt.match(/^\/(ifnot)$/))) {
-                        stmt = '/if';
                     }
 
                     //Process if statement
-                    if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
+                    if ((match = stmt.match(syntaxRegex['if']))) {
                         stack.unshift({
                             key: 'if',
                             start: node
                         });
-                    } else if ((/^((ko[ ]+foreach)|foreach):/).test(stmt) && (match = stmt.match(syntaxRegex.foreach))) {
+                    } else if ((match = stmt.match(syntaxRegex.foreach))) {
                         stack.unshift({
                             key: 'foreach',
                             start: node
                         });
-                    } else if ((match = stmt.match(/^\/(ko|if|foreach)$/))) {
+                    } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
                         block = stack.shift();
-                        if (block && (match[1] === 'ko' || match[1] === block.key)) {
+                        if (block) {
                             block.end = node;
                             blocks.push(block);
-                        } else if (block && match[1] !== block.key) {
-                            throw new Error('Missing end tag for ' + stack[0].start.data.trim());
                         } else {
                             console.warn('Extra end tag found.');
                         }
@@ -293,16 +287,12 @@
                         }
 
                         //Convert ifnot: (...) to if: !(...)
-                        if ((/^((ko[ ]+ifnot)|ifnot):/).test(stmt) && (match = stmt.match(syntaxRegex.ifnot))) {
+                        if ((match = stmt.match(syntaxRegex.ifnot))) {
                             stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
-                        }
-                        //Convert /ifnot to /if
-                        if ((match = stmt.match(/^\/(ifnot)$/))) {
-                            stmt = '/if';
                         }
 
                         //Process if statement
-                        if ((/^((ko[ ]+if)|if):/).test(stmt) && (match = stmt.match(syntaxRegex['if']))) {
+                        if ((match = stmt.match(syntaxRegex['if']))) {
                             val = saferEval(match[2], context, data, node);
 
                             block = this.findBlockFromStartNode(blocks, node);
@@ -315,7 +305,7 @@
                                     n.parentNode.removeChild(n);
                                 });
                             }
-                        } else if ((/^((ko[ ]+foreach)|foreach):/).test(stmt) && (match = stmt.match(syntaxRegex.foreach))) {
+                        } else if ((match = stmt.match(syntaxRegex.foreach))) {
                             inner = match[2].trim();
                             if (inner[0] === '{') {
                                 inner = this.parseObjectLiteral(inner);
