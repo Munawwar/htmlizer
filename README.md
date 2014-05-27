@@ -71,12 +71,12 @@ Output: <div></div>
 ```
 Template:
 <div>
-  <!-- if: count -->
+  <!-- ko if: count -->
     <div id="results"></div>
-  <!-- /if -->
-  <!-- ko if: !count -->
-    No results to display.
   <!-- /ko -->
+  <!-- hz if: !count -->
+    No results to display.
+  <!-- /hz -->
 </div>
 
 Data: {count: 0}
@@ -84,7 +84,7 @@ Data: {count: 0}
 Output: <div>No results to display.</div>
 ```
 
-Note: You can use either "if:" or "ko if:" to begin an *if* statement. And you may either use "/if" or "/ko" to end an *if* statement.
+Note: You can use either "ko if:" or "hz if:" to begin an *if* statement. And you may either use "/ko" or "/hz" to end an *if* statement.
 
 #### *foreach* binding:
 ```
@@ -110,7 +110,7 @@ Output:
 ```
 Template:
 <div>
-  <!-- foreach: items -->
+  <!-- ko foreach: items -->
     <div data-bind="text: name"></div>
   <!-- /ko -->
 </div>
@@ -167,4 +167,4 @@ var template = new Htmlizer('<template string>', {noConflict: true});
 By default noConflict is assumed false. With noConflict = true, there are two main differences:
 
 - Bindings must be placed within data-htmlizer attribute.
-- Containerless statements with "ko" prefix will be ignored. Use without "ko" prefix if you want Htmlizer to process it.
+- Containerless statements with "ko" prefix will be ignored. Use "hz" prefix if you want Htmlizer to process it.

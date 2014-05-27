@@ -1,0 +1,3 @@
+0.3.0 - Breaking changes
+-----
+'hz' can be used as prefix for containerless statements. Prefix-less containerless statements will no longer be recognized.
