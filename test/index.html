@@ -37,8 +37,8 @@
                 cls: 'btn btn-default' //bootstrap 3 button css class
             }));
 
-            //Test 4 - Nested if comments
-            console.info('Test 4 - Nested if comments');
+            //Test 4 - Nested container-less if comments
+            console.info('Test 4 - Nested container-less if comments');
             var text = fetch('if-comment-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Howdy!',
@@ -70,8 +70,8 @@
                 }]
             }));
 
-            //Test 6 - Nested foreach comment
-            console.info('Test 6 - Nested foreach comment');
+            //Test 6 - Nested container-less foreach comment
+            console.info('Test 6 - Nested container-less foreach comment');
             var text = fetch('foreach-comment-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 items: [{
@@ -125,16 +125,25 @@
                 }
             }));
 
-            //Test 11 - No conflict test
-            console.info('Test 11 - No conflict test');
+            //Test 11 - Container-less with binding
+            console.info('Test 11 - Container-less with binding');
+            var text = fetch('with-comment-tpl.html');
+            console.log((new Htmlizer(text)).toString({
+                obj: {
+                    val: 10
+                }
+            }));
+
+            //Test 12 - No conflict test
+            console.info('Test 12 - No conflict test');
             var text = fetch('noconflict-tpl.html');
             console.log((new Htmlizer(text, {noConflict: true})).toString({
                 btnText: 'Howdy!',
                 cls: 'btn btn-default' //bootstrap 3 button css class
             }));
 
-            //Test 12 - No conflict sub-template test
-            console.info('Test 12 - No conflict sub-template test');
+            //Test 13 - No conflict sub-template test
+            console.info('Test 13 - No conflict sub-template test');
             var text = fetch('noconflict-subtemplate-tpl.html');
             console.log((new Htmlizer(text, {noConflict: true})).toString({
                 items: [{

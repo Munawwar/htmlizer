@@ -53,7 +53,8 @@
     var syntaxRegex = {
         "if": new RegExp("((?:ko|hz)[ ]+if):(.+)"),
         "ifnot": new RegExp("((?:ko|hz)[ ]+ifnot):(.+)"),
-        foreach: new RegExp("((?:ko|hz)[ ]+foreach):(.+)")
+        foreach: new RegExp("((?:ko|hz)[ ]+foreach):(.+)"),
+        "with": new RegExp("((?:ko|hz)[ ]+with):(.+)"),
     };
 
     var conflictingBindings = unwrap('if,ifnot,foreach,text,html');
@@ -118,6 +119,11 @@
                     } else if ((match = stmt.match(syntaxRegex.foreach))) {
                         stack.unshift({
                             key: 'foreach',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex['with']))) {
+                        stack.unshift({
+                            key: 'with',
                             start: node
                         });
                     } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
@@ -194,7 +200,7 @@
                                 val = saferEval(value, context, data, node);
 
                                 tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
-                                if (tempFrag.firstChild && val) {
+                                if (tempFrag.firstChild && val !== null && val !== undefined) {
                                     var newContext = this.getNewContext(context, val);
                                     node.appendChild((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext));
                                 }
@@ -328,6 +334,20 @@
                             if (tempFrag.firstChild && val.items instanceof Array) {
                                 tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
                                 node.parentNode.insertBefore(tempFrag, node);
+                            }
+                        } else if ((match = stmt.match(syntaxRegex['with']))) {
+                            val = saferEval(match[2], context, data, node);
+
+                            block = this.findBlockFromStartNode(blocks, node);
+                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                            tempFrag = this.moveToNewFragment(blockNodes);
+
+                            toRemove.push(node);
+                            toRemove.push(block.end);
+
+                            if (tempFrag.firstChild && val !== null && val !== undefined) {
+                                var newContext = this.getNewContext(context, val);
+                                node.parentNode.insertBefore((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext), node);
                             }
                         }
                     }
