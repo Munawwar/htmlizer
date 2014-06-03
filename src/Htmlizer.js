@@ -53,8 +53,9 @@
     var syntaxRegex = {
         "if": new RegExp("((?:ko|hz)[ ]+if):(.+)"),
         "ifnot": new RegExp("((?:ko|hz)[ ]+ifnot):(.+)"),
-        foreach: new RegExp("((?:ko|hz)[ ]+foreach):(.+)"),
+        "foreach": new RegExp("((?:ko|hz)[ ]+foreach):(.+)"),
         "with": new RegExp("((?:ko|hz)[ ]+with):(.+)"),
+        "text": new RegExp("((?:ko|hz)[ ]+text):(.+)")
     };
 
     var conflictingBindings = unwrap('if,ifnot,foreach,text,html');
@@ -124,6 +125,11 @@
                     } else if ((match = stmt.match(syntaxRegex['with']))) {
                         stack.unshift({
                             key: 'with',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex.text))) {
+                        stack.unshift({
+                            key: 'text',
                             start: node
                         });
                     } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
@@ -307,9 +313,7 @@
 
                             if (!val) {
                                 blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                                blockNodes.forEach(function (n) {
-                                    n.parentNode.removeChild(n);
-                                });
+                                tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
                             }
                         } else if ((match = stmt.match(syntaxRegex.foreach))) {
                             inner = match[2].trim();
@@ -348,6 +352,19 @@
                             if (tempFrag.firstChild && val !== null && val !== undefined) {
                                 var newContext = this.getNewContext(context, val);
                                 node.parentNode.insertBefore((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext), node);
+                            }
+                        } else if ((match = stmt.match(syntaxRegex.text))) {
+                            val = saferEval(match[2], context, data, node);
+
+                            block = this.findBlockFromStartNode(blocks, node);
+                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                            tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
+
+                            toRemove.push(node);
+                            toRemove.push(block.end);
+
+                            if (tempFrag.firstChild && val !== null && val !== undefined) {
+                                node.parentNode.insertBefore(document.createTextNode(val), node);
                             }
                         }
                     }

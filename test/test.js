@@ -21,6 +21,20 @@ describe('run text and attr binding test', function () {
     });
 });
 
+describe('run container-less text binding test', function () {
+    var html = fetch('test/text-comment-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            btnText: 'Click here'
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('button element should only have one child', function () {
+        assert.equal(1, df.firstChild.childNodes.length);
+    });
+    it('and it should be a text node with text = "Click here"', function () {
+        assert.equal('Click here', df.firstChild.textContent.trim());
+    });
+});
+
 describe('run html bind test', function () {
     var html = fetch('test/html-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
