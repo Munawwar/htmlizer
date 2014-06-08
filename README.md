@@ -86,6 +86,18 @@ Output: <div>No results to display.</div>
 
 Note: You can use either "ko if:" or "hz if:" to begin an *if* statement. And you may either use "/ko" or "/hz" to end an *if* statement.
 
+#### Containerless *text* binding:
+```
+Template:
+<div>
+  <!-- ko text: msg --><!-- /ko -->
+</div>
+
+Data: {msg: 'Hello'}
+
+Output: <div>Hello</div>
+```
+
 #### *foreach* binding:
 ```
 Template:
@@ -156,6 +168,75 @@ Template:
 Data: {bold: false}
 
 Output: <div style="font-weight: normal;"></div>
+```
+
+#### *with* binding:
+```
+Template:
+<div data-bind="with: obj">
+    <span data-bind="text: val"></span>
+</div>
+
+Data: {obj: {val: 10}}
+
+Output:
+<div>
+    <span>10</span>
+</div>
+```
+
+#### Containerless *with* binding:
+```
+Template:
+<!-- ko with: obj -->
+    <span data-bind="text: val"></span>
+<!-- /ko -->
+
+Data: {obj: {val: 10}}
+
+Output: <span>10</span>
+```
+
+#### Binding Contexts
+
+Supports all the binding contexts documented for KO 3.0 [here](http://knockoutjs.com/documentation/binding-context.html).
+
+```
+Template:
+<div data-bind="foreach: {data: items, as: 'obj'}">
+    <!-- ko foreach: subItems -->
+        <span data-bind="text: $element.nodeName"></span>
+        <span data-bind="text: obj.name"></span>
+        <span data-bind="text: $parent.name"></span>
+        <span data-bind="text: $index"></span>
+        <span data-bind="text: $data.name"></span>
+        <span data-bind="text: name"></span>
+        <span data-bind="text: $root === $parents[$parents.length - 1]"></span>
+    <!-- /ko -->
+</div>
+
+Data:
+{
+    items: [{
+        name: 'item1',
+        subItems: [{
+            name: 'subitem1'
+        }]
+    }]
+}
+
+Output:
+<div>
+
+        <span>SPAN</span>
+        <span>item1</span>
+        <span>item1</span>
+        <span>0</span>
+        <span>subitem1</span>
+        <span>subitem1</span>
+        <span>true</span>
+
+</div>
 ```
 
 Avoiding conflict with KO
