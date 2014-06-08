@@ -397,12 +397,12 @@
                     }
                 }
                 if (isOpenTag && node.nodeType === 3) {
-                    //escape <,> and &.
-                    if (node.parentNode.nodeName === 'SCRIPT') {
-                        html += node.nodeValue;
-                    } else {
-                        html += (node.nodeValue || '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                    var text = node.nodeValue || '';
+                    //escape <,> and &. Except text node inside script or style tag.
+                    if (!(/^(script|style)$/i).test(node.parentNode.nodeName)) {
+                        text = text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
                     }
+                    html += text;
                 }
                 if (isOpenTag && node.nodeType === 8) {
                     html += '<!-- ' + node.data.trim() + ' -->';
