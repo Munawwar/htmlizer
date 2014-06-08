@@ -398,7 +398,11 @@
                 }
                 if (isOpenTag && node.nodeType === 3) {
                     //escape <,> and &.
-                    html += (node.nodeValue || '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                    if (node.parentNode.nodeName === 'SCRIPT') {
+                        html += node.nodeValue;
+                    } else {
+                        html += (node.nodeValue || '').replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                    }
                 }
                 if (isOpenTag && node.nodeType === 8) {
                     html += '<!-- ' + node.data.trim() + ' -->';
