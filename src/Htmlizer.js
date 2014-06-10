@@ -399,7 +399,7 @@
                 if (isOpenTag && node.nodeType === 3) {
                     var text = node.nodeValue || '';
                     //escape <,> and &. Except text node inside script or style tag.
-                    if (!(/^(script|style)$/i).test(node.parentNode.nodeName)) {
+                    if (!(/^(?:script|style)$/i).test(node.parentNode.nodeName)) {
                         text = text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
                     }
                     html += text;
