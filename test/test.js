@@ -73,6 +73,18 @@ describe('run container-less nested "if" statement test', function () {
     });
 });
 
+describe('run mixed "if" statement test', function () {
+    var html = fetch('test/if-mixed-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            btnText: 'Howdy!',
+            cls: 'btn btn-default' //bootstrap 3 button css class
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have 1 HTMLElement', function () {
+        assert.equal(1, countElements(df));
+    });
+});
+
 describe('run inline "foreach" statement test', function () {
     var html = fetch('test/foreach-inline-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({

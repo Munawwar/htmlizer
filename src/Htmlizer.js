@@ -170,6 +170,7 @@
                             }
                         }
 
+                        var ret;
                         this.forEachObjectLiteral(bindOpts, function (binding, value) {
                             //Convert ifnot: (...) to if: !(...)
                             if (binding === 'ifnot') {
@@ -181,7 +182,8 @@
                                 val = saferEval(value, context, data, node);
                                 if (!val) {
                                     toRemove = toRemove.concat(this.slice(node.childNodes));
-                                    return 'continue';
+                                    ret = 'continue';
+                                    return true;
                                 }
                             }
 
@@ -287,6 +289,9 @@
                                 }
                             }
                         }, this);
+                        if (ret) {
+                            return ret;
+                        }
                     }
 
                     //HTML comment node
@@ -504,12 +509,13 @@
         },
 
         /**
+         * Will stop iterating if callback returns true.
          * @private
          */
         forEachObjectLiteral: function (objectLiteral, callback, scope) {
             if (objectLiteral) {
-                parseObjectLiteral(objectLiteral).forEach(function (tuple) {
-                    callback.call(scope, tuple[0], tuple[1]);
+                parseObjectLiteral(objectLiteral).some(function (tuple) {
+                    return (callback.call(scope, tuple[0], tuple[1]) === true);
                 });
             }
         },
