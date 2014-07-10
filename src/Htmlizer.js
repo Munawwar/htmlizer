@@ -394,7 +394,7 @@
                     if (isOpenTag) {
                         html += '<' + tag;
                         this.slice(node.attributes).forEach(function (attr) {
-                            html += ' ' + attr.name + '="' + attr.value + '"';
+                            html += ' ' + attr.name + '="' + attr.value.replace(/"/g, '&quot;') + '"';
                         });
                         html += (voidTags[tag] ? '/>' : '>');
                     } else if (!voidTags[tag]) {

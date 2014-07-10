@@ -10,6 +10,7 @@ describe('run text and attr binding test', function () {
     var html = fetch('test/text-and-attr-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
             btnText: 'Click here',
+            titleText: 'abc " def',
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
         df = htmlToDocumentFragment(outputHtml);
@@ -18,6 +19,9 @@ describe('run text and attr binding test', function () {
     });
     it('it should also have class = "btn btn-default"', function () {
         assert.equal('btn btn-default', df.firstChild.className.trim());
+    });
+    it('it should also have title = "abc &quot; def"', function () {
+        assert.equal('abc " def', df.firstChild.getAttribute('title'));
     });
 });
 

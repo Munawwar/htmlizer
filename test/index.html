@@ -19,6 +19,7 @@
             var text = fetch('text-and-attr-binding-tpl.html');
             console.log((new Htmlizer(text)).toString({
                 btnText: 'Click here',
+                titleText: 'abc " def',
                 cls: 'btn btn-default'
             }));
 
