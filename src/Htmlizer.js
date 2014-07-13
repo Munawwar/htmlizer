@@ -92,64 +92,10 @@
                 };
             }
 
-            var stack = [], //Keep track of ifs and fors
-                blocks = [],
-                block;
-
-            //Before evaluating, determine the nesting structure for containerless statements.
-            traverse(frag, frag, function (node, isOpenTag) {
-                if (isOpenTag && node.nodeType === 8) {
-                    var stmt = node.data.trim(), match;
-
-                    //Ignore all containerless statements beginning with "ko" if noConflict = true.
-                    if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
-                        return;
-                    }
-
-                    //Convert ifnot: (...) to if: !(...)
-                    if ((match = stmt.match(syntaxRegex.ifnot))) {
-                        stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
-                    }
-
-                    //Process if statement
-                    if ((match = stmt.match(syntaxRegex['if']))) {
-                        stack.unshift({
-                            key: 'if',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex.foreach))) {
-                        stack.unshift({
-                            key: 'foreach',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex['with']))) {
-                        stack.unshift({
-                            key: 'with',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex.text))) {
-                        stack.unshift({
-                            key: 'text',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
-                        block = stack.shift();
-                        if (block) {
-                            block.end = node;
-                            blocks.push(block);
-                        } else {
-                            console.warn('Extra end tag found.');
-                        }
-                    }
-                }
-            }, this);
-            if (stack.length) {
-                throw new Error('Missing end tag for ' + stack[0].start.data.trim());
-            }
-
             //Evaluate
-            var toRemove = [], //use this to remove nodes within if statement that are false.
-                blockNodes;
+            var blocks = this.getVirtualBlocks(frag),
+                toRemove = [], //use this to remove nodes within if statement that are false.
+                block, blockNodes;
             traverse(frag, frag, function (node, isOpenTag) {
                 if (isOpenTag) {
                     var val, match, tempFrag, inner;
@@ -414,6 +360,68 @@
                 }
             }, this);
             return html;
+        },
+
+        /**
+         * Go through HTML comment statements and determine the start and end node of each statement.
+         * @private
+         */
+        getVirtualBlocks: function (frag) {
+            var stack = [], //Keep track of ifs and fors
+                blocks = [],
+                block;
+
+            //Before evaluating, determine the nesting structure for containerless statements.
+            traverse(frag, frag, function (node, isOpenTag) {
+                if (isOpenTag && node.nodeType === 8) {
+                    var stmt = node.data.trim(), match;
+
+                    //Ignore all containerless statements beginning with "ko" if noConflict = true.
+                    if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
+                        return;
+                    }
+
+                    //Convert ifnot: (...) to if: !(...)
+                    if ((match = stmt.match(syntaxRegex.ifnot))) {
+                        stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
+                    }
+
+                    //Process if statement
+                    if ((match = stmt.match(syntaxRegex['if']))) {
+                        stack.unshift({
+                            key: 'if',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex.foreach))) {
+                        stack.unshift({
+                            key: 'foreach',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex['with']))) {
+                        stack.unshift({
+                            key: 'with',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex.text))) {
+                        stack.unshift({
+                            key: 'text',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
+                        block = stack.shift();
+                        if (block) {
+                            block.end = node;
+                            blocks.push(block);
+                        } else {
+                            console.warn('Extra end tag found.');
+                        }
+                    }
+                }
+            }, this);
+            if (stack.length) {
+                throw new Error('Missing end tag for ' + stack[0].start.data.trim());
+            }
+            return blocks;
         },
 
         /**
