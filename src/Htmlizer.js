@@ -75,14 +75,83 @@
         } else { //assuming DocumentFragment
             this.frag = template;
         }
+        this.bindingList = [];
+        this.bindingMap = {};
+        this.prepare();
     }
 
+    Htmlizer.View = function (htmlizerInstance, data, context) {
+        this.tpl = htmlizerInstance;
+        this.data = data;
+        this.context = context;
+    };
+
     Htmlizer.prototype = {
+        /**
+         * Identifies sub-templates, comment statement blocks and populates bindingList and bindingMap.
+         * @private
+         */
+        prepare: function () {
+            var frag = this.frag,
+                blocks = this.getVirtualBlocks(frag),
+                id = 1,
+                getId = function () {
+                    return 'hz-' + id++;
+                },
+                blockNodes, tempFrag;
+            traverse(frag, frag, function (node, isOpenTag) {
+                if (isOpenTag) {
+                    var nodeInfo = {},
+                        bindings;
+                    if (node.nodeType === 1) { //element
+                        var bindOpts = node.getAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
+                        if (bindOpts) {
+                            this.checkForConflictingBindings(bindOpts);
+                            bindings = this.parseObjectLiteral(bindOpts);
+                            node._id = getId();
+                            nodeInfo.node = node;
+                            nodeInfo.binding = bindOpts;
+                            if (bindings.foreach || bindings['with']) {
+                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
+                                nodeInfo.subTpl = new Htmlizer(tempFrag, this.cfg);
+                            }
+                            this.bindingList.push(nodeInfo);
+                            this.bindingMap[node._id] = nodeInfo;
+                        }
+                    }
+
+                    //HTML comment node
+                    if (node.nodeType === 8) {
+                        var stmt = node.data.trim();
+
+                        //Ignore all containerless statements beginning with "ko" if noConflict = true.
+                        if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
+                            return;
+                        }
+
+                        var block = this.findBlockFromStartNode(blocks, node);
+                        if (block) {
+                            node._id = getId();
+                            nodeInfo.node = node;
+                            nodeInfo.block = block;
+                            if (block.key === 'foreach' || block.key === 'with') {
+                                blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                                tempFrag = this.moveToNewFragment(blockNodes);
+                                nodeInfo.subTpl = new Htmlizer(tempFrag, this.cfg);
+                            }
+                            this.bindingList.push(nodeInfo);
+                            this.bindingMap[node._id] = nodeInfo;
+                        }
+                    }
+                }
+            }, this);
+        },
         /**
          * @param {Object} data
          */
         toDocumentFragment: function (data, context) {
-            var frag = this.frag.cloneNode(true);
+            var frag = this.frag,
+                output = document.createDocumentFragment();
             if (!context) {
                 context = {
                     $parents: [],
@@ -94,26 +163,25 @@
 
             //Evaluate
             var blocks = this.getVirtualBlocks(frag),
-                toRemove = [], //use this to remove nodes within if statement that are false.
-                block, blockNodes;
-            traverse(frag, frag, function (node, isOpenTag) {
-                if (isOpenTag) {
+                //two stacks - one to keep track of ancestors while inserting content
+                //to output fragment, and the other to keep track of ancestors on template.
+                stack = [output],
+                tStack = [frag],
+                ignoreTillNode = null,
+                tpl, block;
+            traverse(frag, frag, function (tNode, isOpenTag) {
+                if (!ignoreTillNode && isOpenTag) {
+                    var node = tNode.cloneNode(false);
+                    stack[stack.length - 1].appendChild(node);
+
                     var val, match, tempFrag, inner;
                     if (node.nodeType === 1) { //element
+                        stack.push(node);
+                        tStack.push(tNode);
                         var bindOpts = node.getAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
 
                         if (bindOpts) {
                             node.removeAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
-                            var conflict = [];
-                            this.forEachObjectLiteral(bindOpts, function (binding) {
-                                if (binding in conflictingBindings) {
-                                    conflict.push(binding);
-                                }
-                            });
-                            if (conflict.length > 1) {
-                                throw new Error('Multiple bindings (' + conflict[0] + ' and ' + conflict[1] + ') are trying to control descendant bindings of the same element.' +
-                                    'You cannot use these bindings together on the same element.');
-                            }
                         }
 
                         var ret;
@@ -127,7 +195,6 @@
                             if (binding === 'if') {
                                 val = saferEval(value, context, data, node);
                                 if (!val) {
-                                    toRemove = toRemove.concat(this.slice(node.childNodes));
                                     ret = 'continue';
                                     return true;
                                 }
@@ -143,9 +210,9 @@
                                 } else {
                                     val = {items: saferEval(value, context, data, node)};
                                 }
-                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
-                                if (tempFrag.firstChild && val.items instanceof Array) {
-                                    tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
+                                tpl = this.bindingMap[tNode._id].subTpl;
+                                if (tpl.frag.firstChild && val.items instanceof Array) {
+                                    tempFrag = this.executeForEach(tpl, context, data, val.items, val.as);
                                     node.appendChild(tempFrag);
                                 }
                             }
@@ -153,18 +220,18 @@
                             if (binding === 'with') {
                                 val = saferEval(value, context, data, node);
 
-                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
-                                if (tempFrag.firstChild && val !== null && val !== undefined) {
+                                tpl = this.bindingMap[tNode._id].subTpl;
+                                if (tpl.frag.firstChild && val !== null && val !== undefined) {
                                     var newContext = this.getNewContext(context, val);
-                                    node.appendChild((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext));
+                                    node.appendChild(tpl.toDocumentFragment(val, newContext));
                                 }
                             }
 
                             if (binding === 'text' && regexMap.DotNotation.test(value)) {
                                 val = saferEval(value, context, data, node);
                                 if (val !== undefined) {
-                                    node.innerHTML = ''; //KO nukes the inner content.
                                     node.appendChild(document.createTextNode(val));
+                                    ret = 'continue'; //KO ignores the inner content.
                                 }
                             }
 
@@ -248,6 +315,9 @@
                         if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
                             return;
                         }
+                        if ((/^\/(?:ko|hz)$/).test(stmt)) { //remove end of statement
+                            stack[stack.length - 1].removeChild(node);
+                        }
 
                         //Convert ifnot: (...) to if: !(...)
                         if ((match = stmt.match(syntaxRegex.ifnot))) {
@@ -258,13 +328,9 @@
                         if ((match = stmt.match(syntaxRegex['if']))) {
                             val = saferEval(match[2], context, data, node);
 
-                            block = this.findBlockFromStartNode(blocks, node);
-                            toRemove.push(node);
-                            toRemove.push(block.end);
-
+                            block = this.findBlockFromStartNode(blocks, tNode);
                             if (!val) {
-                                blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                                tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
+                                ignoreTillNode = block.end;
                             }
                         } else if ((match = stmt.match(syntaxRegex.foreach))) {
                             inner = match[2].trim();
@@ -278,58 +344,45 @@
                                 val = {items: saferEval(inner, context, data, node)};
                             }
 
-                            //Create a new htmlizer instance, render it and insert berfore this node.
-                            block = this.findBlockFromStartNode(blocks, node);
-                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                            tempFrag = this.moveToNewFragment(blockNodes);
-
-                            toRemove.push(node);
-                            toRemove.push(block.end);
-
-                            if (tempFrag.firstChild && val.items instanceof Array) {
-                                tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
+                            //Render inner template and insert berfore this node.
+                            tpl = this.bindingMap[tNode._id].subTpl;
+                            if (tpl.frag.firstChild && val.items instanceof Array) {
+                                tempFrag = this.executeForEach(tpl, context, data, val.items, val.as);
                                 node.parentNode.insertBefore(tempFrag, node);
                             }
                         } else if ((match = stmt.match(syntaxRegex['with']))) {
                             val = saferEval(match[2], context, data, node);
 
-                            block = this.findBlockFromStartNode(blocks, node);
-                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                            tempFrag = this.moveToNewFragment(blockNodes);
-
-                            toRemove.push(node);
-                            toRemove.push(block.end);
-
-                            if (tempFrag.firstChild && val !== null && val !== undefined) {
+                            tpl = this.bindingMap[tNode._id].subTpl;
+                            if (tpl.frag.firstChild && val !== null && val !== undefined) {
                                 var newContext = this.getNewContext(context, val);
-                                node.parentNode.insertBefore((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext), node);
+                                node.parentNode.insertBefore(tpl.toDocumentFragment(val, newContext), node);
                             }
                         } else if ((match = stmt.match(syntaxRegex.text))) {
                             val = saferEval(match[2], context, data, node);
 
-                            block = this.findBlockFromStartNode(blocks, node);
-                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                            tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
-
-                            toRemove.push(node);
-                            toRemove.push(block.end);
-
-                            if (tempFrag.firstChild && val !== null && val !== undefined) {
+                            block = this.findBlockFromStartNode(blocks, tNode);
+                            if (val !== null && val !== undefined) {
+                                ignoreTillNode = block.end;
                                 node.parentNode.insertBefore(document.createTextNode(val), node);
                             }
                         }
+
+                        if ((/^(?:ko|hz) /).test(stmt)) { //remove start of statement
+                            stack[stack.length - 1].removeChild(node);
+                        }
+                    }
+                } else if (!isOpenTag) {
+                    if (tNode.nodeType === 1 && tStack[tStack.length - 1] === tNode) {
+                        stack.pop();
+                        tStack.pop();
+                    }
+                    if (tNode === ignoreTillNode) {
+                        ignoreTillNode = null;
                     }
                 }
             }, this);
-
-            //If statements could mark some elements to be removed.
-            if (toRemove.length) {
-                toRemove.forEach(function (node) {
-                    node.parentNode.removeChild(node);
-                });
-            }
-
-            return frag;
+            return output;
         },
 
         toString: function (data) {
@@ -373,6 +426,7 @@
 
             //Before evaluating, determine the nesting structure for containerless statements.
             traverse(frag, frag, function (node, isOpenTag) {
+                //HTML comment node
                 if (isOpenTag && node.nodeType === 8) {
                     var stmt = node.data.trim(), match;
 
@@ -426,14 +480,13 @@
 
         /**
          * @private
-         * @param {DocumentFragment} fragment Document fragment that contains the body of the foreach statement
+         * @param {Htmlizer} template Htmlizer instance that contains the body of the foreach statement
          * @param {Object} context
          * @param {Object} data Data object
          * @param {Array} items The array to iterate through
          */
-        executeForEach: function (fragment, context, data, items, as) {
-            var output = document.createDocumentFragment(),
-                template = new Htmlizer(fragment, this.cfg);
+        executeForEach: function (template, context, data, items, as) {
+            var output = document.createDocumentFragment();
             items.forEach(function (item, index) {
                 var newContext = this.getNewContext(context, data);
                 //foreach special properties
@@ -474,6 +527,23 @@
                 });
             }
             return newContext;
+        },
+
+        /**
+         * @param {String} bindOpts Bindings as string
+         * @private
+         */
+        checkForConflictingBindings: function (bindOpts) {
+            var conflict = [];
+            this.forEachObjectLiteral(bindOpts, function (binding) {
+                if (binding in conflictingBindings) {
+                    conflict.push(binding);
+                }
+            });
+            if (conflict.length > 1) {
+                throw new Error('Multiple bindings (' + conflict[0] + ' and ' + conflict[1] + ') are trying to control descendant bindings of the same element.' +
+                    'You cannot use these bindings together on the same element.');
+            }
         },
 
         /**
