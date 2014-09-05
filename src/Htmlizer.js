@@ -39,15 +39,7 @@
     }
 
     //HTML 4 and 5 void tags
-    var voidTags = unwrap('area,base,basefont,br,col,command,embed,frame,hr,img,input,keygen,link,meta,param,source,track,wbr'),
-        regexString = {
-            JSVar: "[$_A-Za-z][$_A-Za-z0-9]*"
-        };
-    regexString.DotNotation = '(' + regexString.JSVar + '(?:\\.' + regexString.JSVar + ')*)';
-
-    var regexMap = {
-        DotNotation: new RegExp(regexString.DotNotation)
-    };
+    var voidTags = unwrap('area,base,basefont,br,col,command,embed,frame,hr,img,input,keygen,link,meta,param,source,track,wbr');
 
     //Valid statements.
     var syntaxRegex = {
@@ -214,30 +206,34 @@
                                 }
                             }
 
-                            if (binding === 'text' && regexMap.DotNotation.test(value)) {
+                            if (binding === 'text') {
                                 val = saferEval(value, context, data, node);
-                                if (val !== undefined) {
-                                    node.innerHTML = ''; //KO nukes the inner content.
-                                    node.appendChild(document.createTextNode(val));
+                                node.innerHTML = ''; //KO nukes the inner content.
+                                if (val === null || val === undefined) {
+                                    val = '';
                                 }
+                                node.appendChild(document.createTextNode(val));
                             }
 
                             if (binding === 'html') {
                                 $(node).empty();
                                 val = saferEval(value, context, data, node);
-                                if (val) {
-                                    tempFrag = this.moveToNewFragment(this.parseHTML(val));
-                                    node.appendChild(tempFrag);
+                                if (val !== undefined && val !== null && val !== '') {
+                                    var nodes = this.parseHTML(val + '');
+                                    if (nodes) {
+                                        tempFrag = this.moveToNewFragment(nodes);
+                                        node.appendChild(tempFrag);
+                                    }
                                 }
                             }
 
                             if (binding === 'attr') {
                                 this.forEachObjectLiteral(value.slice(1, -1), function (attr, value) {
-                                    if (regexMap.DotNotation.test(value)) {
-                                        val = saferEval(value, context, data, node);
-                                        if (typeof val === 'string' || typeof val === 'number') {
-                                            node.setAttribute(attr, val);
-                                        }
+                                    val = saferEval(value, context, data, node);
+                                    if (val || typeof val === 'string' || typeof val === 'number') {
+                                        node.setAttribute(attr, val);
+                                    } else { //undefined, null, false
+                                        node.removeAttribute(attr);
                                     }
                                 });
                             }
@@ -247,6 +243,8 @@
                                     val = saferEval(expr, context, data, node);
                                     if (val) {
                                         $(node).addClass(className);
+                                    } else {
+                                        $(node).removeClass(className);
                                     }
                                 });
                             }
@@ -254,14 +252,19 @@
                             if (binding === 'style') {
                                 this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
                                     val = saferEval(value, context, data, node) || null;
-                                    node.style.setProperty(prop.replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
+                                    if (val || typeof val === 'string' || typeof val === 'number') {
+                                        node.style.setProperty(prop.replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
+                                    } else { //undefined, null, false
+                                        node.style.removeProperty(prop.replace(/[A-Z]/g, replaceJsCssPropWithCssProp));
+                                    }
                                 });
                             }
 
                             //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
 
                             if (binding === 'disable' || binding === 'enable') {
-                                var disable = (binding === 'disable' ? value : !value);
+                                val = saferEval(value, context, data, node);
+                                var disable = (binding === 'disable' ? val : !val);
                                 if (disable) {
                                     node.setAttribute('disabled', 'disabled');
                                 } else {
@@ -270,7 +273,8 @@
                             }
 
                             if (binding === 'checked') {
-                                if (value) {
+                                val = saferEval(value, context, data, node);
+                                if (val) {
                                     node.setAttribute('checked', 'checked');
                                 } else {
                                     node.removeAttribute('checked');
@@ -278,12 +282,20 @@
                             }
 
                             if (binding === 'value') {
-                                node.setAttribute('value', value);
+                                val = saferEval(value, context, data, node);
+                                if (val === null || val === undefined) {
+                                    node.removeAttribute('value');
+                                } else {
+                                    node.setAttribute('value', val);
+                                }
                             }
 
                             if (binding === 'visible') {
-                                if (value) {
-                                    node.style.removeProperty('display');
+                                val = saferEval(value, context, data, node);
+                                if (val) {
+                                    if (node.style.display === 'none') {
+                                        node.style.removeProperty('display');
+                                    }
                                 } else {
                                     node.style.setProperty('display', 'none');
                                 }
