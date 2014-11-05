@@ -47,7 +47,8 @@
         "ifnot": new RegExp("((?:ko|hz)[ ]+ifnot):(.+)"),
         "foreach": new RegExp("((?:ko|hz)[ ]+foreach):(.+)"),
         "with": new RegExp("((?:ko|hz)[ ]+with):(.+)"),
-        "text": new RegExp("((?:ko|hz)[ ]+text):(.+)")
+        "text": new RegExp("((?:ko|hz)[ ]+text):(.+)"),
+        "html": new RegExp("((?:ko|hz)[ ]+html):(.+)")
     };
 
     var conflictingBindings = unwrap('if,ifnot,foreach,text,html');
@@ -122,6 +123,11 @@
                     } else if ((match = stmt.match(syntaxRegex.text))) {
                         stack.unshift({
                             key: 'text',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex.html))) {
+                        stack.unshift({
+                            key: 'html',
                             start: node
                         });
                     } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
@@ -382,6 +388,19 @@
 
                             if (tempFrag.firstChild && val !== null && val !== undefined) {
                                 node.parentNode.insertBefore(document.createTextNode(val), node);
+                            }
+                        } else if ((match = stmt.match(syntaxRegex.html))) {
+                            val = saferEval(match[2], context, data, node);
+
+                            block = this.findBlockFromStartNode(blocks, node);
+                            blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                            tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
+
+                            toRemove.push(node);
+                            toRemove.push(block.end);
+
+                            if (val !== null && val !== undefined) {
+                                node.parentNode.insertBefore(this.moveToNewFragment(this.parseHTML(val)), node);
                             }
                         }
                     }

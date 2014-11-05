@@ -49,6 +49,16 @@ describe('run html bind test', function () {
         assert.equal(3, countElements(df));
     });
 });
+describe('run container-less html binding test', function () {
+    var html = fetch('test/html-inline-binding-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            message: '<b>This</b> is a <b>serious message</b>.'
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have 2 HTMLElements', function () {
+        assert.equal(2, countElements(df));
+    });
+});
 
 describe('run inline "if" statement test', function () {
     var html = fetch('test/if-inline-tpl.html'),
