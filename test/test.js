@@ -31,11 +31,18 @@ describe('run container-less text binding test', function () {
             btnText: 'Click here'
         }),
         df = htmlToDocumentFragment(outputHtml);
-    it('button element should only have one child', function () {
+    it('first button element should only have one child', function () {
         assert.equal(1, df.firstChild.childNodes.length);
     });
     it('and it should be a text node with text = "Click here"', function () {
         assert.equal('Click here', df.firstChild.textContent.trim());
+    });
+    var lastButton = df.lastChild.previousSibling;
+    it('second button element should only have one child', function () {
+        assert.equal(1, lastButton.childNodes.length);
+    });
+    it('and it should be a text node with text = "Click here"', function () {
+        assert.equal('Click here', lastButton.textContent.trim());
     });
 });
 

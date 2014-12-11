@@ -386,7 +386,7 @@
                             toRemove.push(node);
                             toRemove.push(block.end);
 
-                            if (tempFrag.firstChild && val !== null && val !== undefined) {
+                            if (val !== null && val !== undefined) {
                                 node.parentNode.insertBefore(document.createTextNode(val), node);
                             }
                         } else if ((match = stmt.match(syntaxRegex.html))) {
