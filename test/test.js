@@ -317,6 +317,28 @@ describe('run no conflict sub-template test', function () {
     });
 });
 
+describe('run template binding test', function () {
+    var html = fetch('test/template.html'),
+        doc = jsdom(fetch('test/files/docroot.html'));
+    var outputHtml = (new Htmlizer(html, {document: doc})).toString({
+            buyer: {
+                name: 'Franklin',
+                credits: 250
+            }
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('div should have h3 tag', function () {
+        assert.equal('H3', df.firstChild.childNodes[1].tagName);
+    });
+    it('h3 should have text as "Franklin"', function () {
+        assert.equal('Franklin', df.firstChild.childNodes[1].firstChild.nodeValue);
+    });
+    it('foreach test: second div should have h3 with text as "Franklin"', function () {
+        assert.equal('H3', df.childNodes[2].childNodes[1].tagName);
+        assert.equal('Franklin', df.childNodes[2].childNodes[1].firstChild.nodeValue);
+    });
+});
+
 /*Utility functions*/
 function fetch(pathToTextFile) {
     return fs.readFileSync(pathToTextFile, {encoding: 'utf8'});

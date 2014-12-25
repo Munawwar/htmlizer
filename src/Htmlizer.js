@@ -56,6 +56,8 @@
     /**
      * @param {String|DocumentFragment} template If string, then it is better if the HTML is balanced, else it probably won't be correctly converted to DOM.
      * @param {Object} cfg
+     * @param {Document} cfg.document Only used in NodeJS to make the 'template' binding work. If template isn't a complete document,
+     *  then provide a HTMLDocument that contains script tags that the 'template' binding can use.
      * @param {Object} cfg.noConflict Will ensure Htmlizer doesn't conflict with KnockoutJS. i.e data-htmlizer attribute will be used and
      * containerless statements beginning and ending with "ko" prefix will be ignored.
      */
@@ -71,6 +73,7 @@
     }
 
     Htmlizer.prototype = {
+        document: null,
         /**
          * @param {Object} data
          */
@@ -207,8 +210,7 @@
 
                                 tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
                                 if (tempFrag.firstChild && val !== null && val !== undefined) {
-                                    var newContext = this.getNewContext(context, val);
-                                    node.appendChild((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext));
+                                    node.appendChild(this.executeInNewContext(tempFrag, context, val));
                                 }
                             }
 
@@ -230,6 +232,34 @@
                                         tempFrag = this.moveToNewFragment(nodes);
                                         node.appendChild(tempFrag);
                                     }
+                                }
+                            }
+
+                            if (binding === 'template') {
+                                $(node).empty();
+                                inner = this.parseObjectLiteral(value);
+                                val = {
+                                    name: inner.name.slice(1, -1),
+                                    data: saferEval(inner.data, context, data, node),
+                                    if: inner['if'] ? saferEval(inner['if'], context, data, node) : true,
+                                    foreach: saferEval(inner.foreach, context, data, node),
+                                    as: (inner.as || '').slice(1, -1) //strip string quote
+                                };
+
+                                var doc = this.document || document,
+                                    tpl = doc.querySelector('script[id="' + val.name + '"]');
+                                if (!tpl) {
+                                    throw new Error("Template named '" + val.name + "' does not exist.");
+                                }
+                                tpl = this.moveToNewFragment(this.parseHTML(tpl.textContent));
+
+                                if (val['if'] && tpl.firstChild) {
+                                    if (val.data || !(val.foreach instanceof Array)) {
+                                        tempFrag = this.executeInNewContext(tpl, context, val.data || data);
+                                    } else {
+                                        tempFrag = this.executeForEach(tpl, context, data, val.foreach, val.as);
+                                    }
+                                    node.appendChild(tempFrag);
                                 }
                             }
 
@@ -373,8 +403,7 @@
                             toRemove.push(block.end);
 
                             if (tempFrag.firstChild && val !== null && val !== undefined) {
-                                var newContext = this.getNewContext(context, val);
-                                node.parentNode.insertBefore((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext), node);
+                                node.parentNode.insertBefore(this.executeInNewContext(tempFrag, context, val), node);
                             }
                         } else if ((match = stmt.match(syntaxRegex.text))) {
                             val = saferEval(match[2], context, data, node);
@@ -445,6 +474,18 @@
                 }
             }, this);
             return html;
+        },
+
+        /**
+         * @private
+         * @param {DocumentFragment} fragment Document fragment that contains the template to use
+         * @param {Object} context
+         * @param {Object} data Data object
+         */
+        executeInNewContext: function (fragment, context, data) {
+            var template = new Htmlizer(fragment, this.cfg),
+                newContext = this.getNewContext(context, data);
+            return template.toDocumentFragment(data, newContext);
         },
 
         /**
