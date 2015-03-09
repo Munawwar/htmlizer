@@ -11,12 +11,12 @@ Dependencies:
 
 Why?
 -----
-Most templating languages doesn't ensure that the templates are valid HTML. Templates needs to be parsable for build tools like assetgraph-builder to able to 1. find assets and relations 2. Translate text with their data-i18n syntax.
+Most templating languages doesn't ensure that the templates are valid HTML. Templates needs to be parsable for build tools like assetgraph-builder to able to 1. find assets (like images) for optimization 2. Translate text with their [data-i18n](https://github.com/assetgraph/assetgraph-builder#html-i18n-syntax) syntax.
 
 For example consider this Mustache template: `<div {{attributes}}></div>`.
 This looks sane, but is unfortunately not parsable by most HTML parsers.
 
-Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid CSS syntax and some parsers (I think jsdom) may throw an error.
+Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid CSS syntax and some parsers may throw an error.
 
 Usage
 -----
