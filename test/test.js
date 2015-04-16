@@ -4,7 +4,7 @@ var assert = require("assert"),
     fs = require('fs'),
     Htmlizer = require('../src/Htmlizer.js'),
     jsdom = require('jsdom').jsdom,
-    jqueryFactory = require('../src/jquery.js');
+    jqueryFactory = require('./jquery.js');
 
 describe('run text and attr binding test', function () {
     var html = fetch('test/text-and-attr-binding-tpl.html'),
