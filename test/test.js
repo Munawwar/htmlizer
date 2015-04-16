@@ -37,7 +37,7 @@ describe('run container-less text binding test', function () {
     it('and it should be a text node with text = "Click here"', function () {
         assert.equal('Click here', df.firstChild.textContent.trim());
     });
-    var lastButton = df.lastChild.previousSibling;
+    var lastButton = df.children[1];
     it('second button element should only have one child', function () {
         assert.equal(1, lastButton.childNodes.length);
     });

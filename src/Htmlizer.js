@@ -12,16 +12,16 @@
             window = jsdom('').parentWindow;
         module.exports = factory(
             saferEval,
-            require('./jquery')(window),
+            require('./htmlparser')(window),
             require('./js-object-literal-parse.js'),
             window
         );
     } else if (typeof define === 'function' && define.amd) {
-        define(['jquery', './js-object-literal-parse'], factory.bind(this, saferEval));
+        define(['./htmlparser', './js-object-literal-parse'], factory.bind(this, saferEval));
     } else {
-        root.Htmlizer = factory(saferEval, root.jQuery, root.parseObjectLiteral);
+        root.Htmlizer = factory(saferEval, root.HTMLtoDOM, root.parseObjectLiteral);
     }
-}(this, function (saferEval, $, parseObjectLiteral, window) {
+}(this, function (saferEval, HTMLtoDOM, parseObjectLiteral, window) {
     //browser and jsdom compatibility
     window = window || this;
     var document = window.document;
@@ -61,10 +61,12 @@
      */
     function Htmlizer(template, cfg) {
         this.cfg = cfg;
-        $.extend(this, cfg);
+        Object.keys(cfg || {}).forEach(function (key) {
+            this[key] = cfg[key];
+        }, this);
         if (typeof template === 'string') {
             this.origTplStr = template;
-            this.frag = this.moveToNewFragment(this.parseHTML(template));
+            this.frag = this.parseHTML(template);
         } else { //assuming DocumentFragment
             this.frag = template;
         }
@@ -222,12 +224,11 @@
                             }
 
                             if (binding === 'html') {
-                                $(node).empty();
+                                node.innerHTML = '';
                                 val = saferEval(value, context, data, node);
                                 if (val !== undefined && val !== null && val !== '') {
-                                    var nodes = this.parseHTML(val + '');
-                                    if (nodes) {
-                                        tempFrag = this.moveToNewFragment(nodes);
+                                    var tempFrag = this.parseHTML(val + '');
+                                    if (tempFrag.firstChild) {
                                         node.appendChild(tempFrag);
                                     }
                                 }
@@ -246,12 +247,24 @@
 
                             if (binding === 'css') {
                                 this.forEachObjectLiteral(value.slice(1, -1), function (className, expr) {
+                                    className = className.trim();
                                     val = saferEval(expr, context, data, node);
+                                    //Make map of class names (to remove duplicates).
+                                    var classes = {};
+                                    node.className.split(' ').forEach(function (cls) {
+                                        classes[cls.trim()] = true;
+                                    });
                                     if (val) {
-                                        $(node).addClass(className);
+                                        classes[className] = true;
                                     } else {
-                                        $(node).removeClass(className);
+                                        delete classes[className];
                                     }
+                                    //Remake class string
+                                    var classString = '';
+                                    Object.keys(classes).forEach(function (cls) {
+                                        classString += cls + ' ';
+                                    });
+                                    node.className = classString.slice(0, -1);
                                 });
                             }
 
@@ -400,7 +413,7 @@
                             toRemove.push(block.end);
 
                             if (val !== null && val !== undefined) {
-                                node.parentNode.insertBefore(this.moveToNewFragment(this.parseHTML(val)), node);
+                                node.parentNode.insertBefore(this.parseHTML(val), node);
                             }
                         }
                     }
@@ -500,12 +513,12 @@
         },
 
         /**
-         * Parse html string using jQuery.parseHTML and also make sure script tags aren't removed.
+         * Parse html string using neutron-html5parser and also make sure script tags aren't removed.
          * @param {String} html
          * @private
          */
         parseHTML: function (html) {
-            return $.parseHTML(html, document, true);
+            return HTMLtoDOM(html);
         },
 
         /**
