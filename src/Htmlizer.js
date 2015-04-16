@@ -76,8 +76,25 @@
         /**
          * @param {Object} data
          */
-        toDocumentFragment: function (data, context) {
-            var frag = this.frag.cloneNode(true);
+        toDOM: function (data, context) {
+            var frag;
+            if (this.frag.nodeType === 11) {
+                frag = this.frag.cloneNode(true);
+            } else {
+                //Clone Document manually to new Document
+                frag = (function () {
+                    var newDoc = document.implementation.createDocument("", "", null); //create empty document
+                    this.slice(this.frag.childNodes).forEach(function (node) {
+                        if (node.nodeType !== 10) {
+                            newDoc.appendChild(newDoc.importNode(node, true));
+                        } else {
+                            newDoc.insertBefore(newDoc.implementation.createDocumentType('html', '', ''), newDoc.firstChild);
+                        }
+                    });
+                    return newDoc;
+                }.call(this));
+            }
+
             if (!context) {
                 context = {
                     $parents: [],
@@ -210,7 +227,7 @@
                                 tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
                                 if (tempFrag.firstChild && val !== null && val !== undefined) {
                                     var newContext = this.getNewContext(context, val);
-                                    node.appendChild((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext));
+                                    node.appendChild((new Htmlizer(tempFrag, this.cfg)).toDOM(val, newContext));
                                 }
                             }
 
@@ -387,7 +404,7 @@
 
                             if (tempFrag.firstChild && val !== null && val !== undefined) {
                                 var newContext = this.getNewContext(context, val);
-                                node.parentNode.insertBefore((new Htmlizer(tempFrag, this.cfg)).toDocumentFragment(val, newContext), node);
+                                node.parentNode.insertBefore((new Htmlizer(tempFrag, this.cfg)).toDOM(val, newContext), node);
                             }
                         } else if ((match = stmt.match(syntaxRegex.text))) {
                             val = saferEval(match[2], context, data, node);
@@ -431,7 +448,7 @@
         },
 
         toString: function (data) {
-            var frag = this.toDocumentFragment(data), html = '';
+            var frag = this.toDOM(data), html = '';
             traverse(frag, frag, function (node, isOpenTag) {
                 if (node.nodeType === 1) {
                     var tag = node.nodeName.toLowerCase();
@@ -445,16 +462,19 @@
                         html += '</' + tag + '>';
                     }
                 }
-                if (isOpenTag && node.nodeType === 3) {
-                    var text = node.nodeValue || '';
-                    //escape <,> and &. Except text node inside script or style tag.
-                    if (!(/^(?:script|style)$/i).test(node.parentNode.nodeName)) {
-                        text = text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                if (isOpenTag) {
+                    if (node.nodeType === 3) {
+                        var text = node.nodeValue || '';
+                        //escape <,> and &. Except text node inside script or style tag.
+                        if (!(/^(?:script|style)$/i).test(node.parentNode.nodeName)) {
+                            text = text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                        }
+                        html += text;
+                    } else if (node.nodeType === 10) {
+                        html += '<!DOCTYPE html>';
+                    } else  if (node.nodeType === 8) {
+                        html += '<!-- ' + node.data.trim() + ' -->';
                     }
-                    html += text;
-                }
-                if (isOpenTag && node.nodeType === 8) {
-                    html += '<!-- ' + node.data.trim() + ' -->';
                 }
             }, this);
             return html;
@@ -484,7 +504,7 @@
                 }
 
                 //..finally execute
-                output.appendChild(template.toDocumentFragment(item, newContext));
+                output.appendChild(template.toDOM(item, newContext));
             }, this);
             return output;
         },
