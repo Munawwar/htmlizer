@@ -198,13 +198,15 @@ Output: <span>10</span>
 ```
 
 #### *template* binding:
+Works mostly like KO 3.0 - [documentation](http://knockoutjs.com/documentation/template-binding.html).
+Supports the following properties: name, data, if, foreach and as.
 
 ```
 Template:
 <div data-bind="template: { name: 'person-template', data: buyer }"></div>
 <div data-bind="template: { name: 'person-template', foreach: [buyer] }"></div>
 
-index.html
+index.html:
 <html>
     <head>
         <script type="text/html" id="person-template">
@@ -233,11 +235,12 @@ Output:
 </div>
 ```
 
-To make template work on NodeJS, one must first place all sub-templates in a separate document and pass it parameter to the template being executed.
+To make template work on NodeJS, one must first place all sub-templates in a separate HTMLDocument and
+pass it as parameter to the template being executed.
 
 ```
   var html = require('fs').readFileSync('index.html'); //load the file with the sub-templates.
-      doc = require('jsdom')(html),
+      doc = require('jsdom')(html), //returns HTMLDocument
       output = (new Htmlizer('<template string>', {document: doc})).toDocumentFragment(dataObject);
 ```
 
