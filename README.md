@@ -239,7 +239,7 @@ To make template work on NodeJS, one must first place all sub-templates in a sep
 pass it as parameter to the template being executed.
 
 ```
-  var html = require('fs').readFileSync('index.html'); //load the file with the sub-templates.
+  var html = require('fs').readFileSync('index.html'), //load the file with the sub-templates.
       doc = require('jsdom')(html), //returns HTMLDocument
       output = (new Htmlizer('<template string>', {document: doc})).toDocumentFragment(dataObject);
 ```
