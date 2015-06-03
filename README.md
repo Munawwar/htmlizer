@@ -197,6 +197,50 @@ Data: {obj: {val: 10}}
 Output: <span>10</span>
 ```
 
+#### *template* binding:
+
+```
+Template:
+<div data-bind="template: { name: 'person-template', data: buyer }"></div>
+<div data-bind="template: { name: 'person-template', foreach: [buyer] }"></div>
+
+index.html
+<html>
+    <head>
+        <script type="text/html" id="person-template">
+            <h3 data-bind="text: name"></h3>
+            <p>Credits: <span data-bind="text: credits"></span></p>
+        </script>
+    </head>
+</html>
+
+Data:
+{
+    buyer: {
+        name: 'Franklin',
+        credits: 250
+    }
+}
+
+Output:
+<div>
+    <h3><Franklin/h3>
+    <p>Credits: <span>250</span></p>
+</div>
+<div>
+    <h3><Franklin/h3>
+    <p>Credits: <span>250</span></p>
+</div>
+```
+
+To make template work on NodeJS, one must first place all sub-templates in a separate document and pass it parameter to the template being executed.
+
+```
+  var html = require('fs').readFileSync('index.html'); //load the file with the sub-templates.
+      doc = require('jsdom')(html),
+      output = (new Htmlizer('<template string>', {document: doc})).toDocumentFragment(dataObject);
+```
+
 #### Binding Contexts
 
 Supports all the binding contexts documented for KO 3.0 [here](http://knockoutjs.com/documentation/binding-context.html).
