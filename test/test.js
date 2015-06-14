@@ -154,6 +154,17 @@ describe('run css and style binding test', function () {
     });
 });
 
+describe('run css dynamic class binding test', function () {
+    var html = fetch('test/css-dynamic-class-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({
+            className: 'dynamicClass'
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+    it('it should have class="dynamicClass"', function () {
+        assert.equal('dynamicClass', df.firstChild.className.trim());
+    });
+});
+
 describe('run binding context test', function () {
     var html = fetch('test/binding-context-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
