@@ -275,14 +275,22 @@
                             }
 
                             if (binding === 'css') {
-                                this.forEachObjectLiteral(value.slice(1, -1), function (className, expr) {
-                                    val = saferEval(expr, context, data, node);
-                                    if (val) {
-                                        $(node).addClass(className);
-                                    } else {
-                                        $(node).removeClass(className);
-                                    }
-                                });
+                                if (value[0] === '{') {
+                                   this.forEachObjectLiteral(value.slice(1, -1), function (className, expr) {
+
+                                       val = saferEval(expr, context, data, node);
+                                       if (val) {
+                                           $(node).addClass(className);
+                                       } else {
+                                           $(node).removeClass(className);
+                                       }
+                                   });
+                               } else {
+                                   var className = saferEval(value, context, data, node);
+                                   if (className) {
+                                       $(node).addClass(className);
+                                   }
+                               }
                             }
 
                             if (binding === 'style') {
