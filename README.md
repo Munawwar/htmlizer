@@ -4,10 +4,11 @@ Htmlizer
 Generate HTML (fragments) with Templates that are valid HTML (fragments).
 
 
-Dependencies:
+Client side dependencies:
 - jQuery
-- https://github.com/mbest/js-object-literal-parse
-- On NodeJS, jsdom will also be required.
+- https://github.com/mbest/js-object-literal-parse (this is in the src/ folder)
+
+On NodeJS: Just do `npm install htmlizer`.
 
 Why?
 -----
@@ -33,7 +34,7 @@ Render template as DocumentFragment:
 
 Template syntax
 -----
-Syntax is similar to KnockoutJS (in fact supports a subset of Knockout templates).
+Syntax is similar to KnockoutJS (in fact supports a subset of Knockout bindings).
 
 #### *text* binding:
 
@@ -288,6 +289,8 @@ Output:
 
 Avoiding conflict with KO
 -----
+Use case: If you intend to do a partial render with Htmlizer on the server side and the rest with KO on the client side, then you will need to seperate concerns (i.e. avoid conflicts with KO).
+
 To avoid conflict with KnockoutJS, set noConflict config to true:
 ```
 var template = new Htmlizer('<template string>', {noConflict: true});
