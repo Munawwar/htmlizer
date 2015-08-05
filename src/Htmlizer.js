@@ -344,6 +344,10 @@
                                     node.style.setProperty('display', 'none');
                                 }
                             }
+
+                            if (this.noConflict && binding === 'data-bind') {
+                                node.setAttribute('data-bind', value);
+                            }
                         }, this);
                         if (ret) {
                             return ret;

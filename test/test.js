@@ -306,6 +306,21 @@ describe('run no conflict test', function () {
     });
 });
 
+describe('run no conflict data-bind binding test', function () {
+    var html = fetch('test/noconflict-databind-tpl.html'),
+        outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
+            cls: 'btn'
+        }),
+        df = htmlToDocumentFragment(outputHtml);
+
+    it('it should have a class = "btn"', function () {
+        assert.equal('btn', df.firstChild.getAttribute('class'));
+    });
+    it('it should have a data-bind attribute = {text:btnText}', function () {
+        assert.equal('{text:btnText}', df.firstChild.getAttribute('data-bind'));
+    });
+});
+
 describe('run no conflict sub-template test', function () {
     var html = fetch('test/noconflict-subtemplate-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
