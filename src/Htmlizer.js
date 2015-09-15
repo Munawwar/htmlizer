@@ -698,7 +698,7 @@
     if (arguments.length === 4) {
         try {
             return (new Function('$context', '$data', '$element', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {}, arguments[3]);
-        } catch (e) {}
+        } catch (e) {console.log('Htmlizer expression ' + e);}
     } else {
         throw new Error('Expression evaluator needs at least 4 arguments.');
     }
