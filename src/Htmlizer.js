@@ -155,19 +155,25 @@
                 if (isOpenTag) {
                     var val, match, tempFrag, inner;
                     if (node.nodeType === 1) { //element
-                        var bindOpts = node.getAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
+                        var beenThere = node.getAttribute('beenthere');
+                        if (beenThere) {
+                            node.setAttribute('beenthere', beenThere + 'y');
+                        } else {
+                            node.setAttribute('beenthere', 'y');
+                            var bindOpts = node.getAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
 
-                        if (bindOpts) {
-                            node.removeAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
-                            var conflict = [];
-                            this.forEachObjectLiteral(bindOpts, function (binding) {
-                                if (binding in conflictingBindings) {
-                                    conflict.push(binding);
+                            if (bindOpts) {
+                                //node.removeAttribute(this.noConflict ? 'data-htmlizer' : 'data-bind');
+                                var conflict = [];
+                                this.forEachObjectLiteral(bindOpts, function (binding) {
+                                    if (binding in conflictingBindings) {
+                                        conflict.push(binding);
+                                    }
+                                });
+                                if (conflict.length > 1) {
+                                    throw new Error('Multiple bindings (' + conflict[0] + ' and ' + conflict[1] + ') are trying to control descendant bindings of the same element.' +
+                                        'You cannot use these bindings together on the same element.');
                                 }
-                            });
-                            if (conflict.length > 1) {
-                                throw new Error('Multiple bindings (' + conflict[0] + ' and ' + conflict[1] + ') are trying to control descendant bindings of the same element.' +
-                                    'You cannot use these bindings together on the same element.');
                             }
                         }
 
