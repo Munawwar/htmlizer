@@ -6,6 +6,26 @@ var assert = require("assert"),
     jsdom = require('jsdom').jsdom,
     jqueryFactory = require('../src/jquery.js');
 
+describe('visit same node twice', function () {
+    it('should... ', function () {
+        var template = [
+            '<ul data-bind="foreach: list">',
+            '<li data-bind="text: title"></li>',
+            '</ul>'
+        ].join('');
+        var outputHtml = (new Htmlizer(template)).toString({
+            list: [
+                { title: 'foo' },
+                { title: 'bar' },
+                { title: 'qux' }
+            ]
+        });
+        var df = htmlToDocumentFragment(outputHtml);
+
+        assert.equal('y', df.firstChild.children[0].getAttribute('beenthere'));
+    });
+});
+
 describe('run text and attr binding test', function () {
     var html = fetch('test/text-and-attr-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
