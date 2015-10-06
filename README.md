@@ -27,6 +27,7 @@ With v2, to speed up performance on nodejs, jsdom as a dependency has been remov
 v2 only supports server-side rendering (unlike v1).
 
 The following are some of the implications due to this change:
+
 1. toDocumentFragment() method has been removed.
 2. $element KO binding context cannot be used anymore.
 3. template binding interface has changed.
