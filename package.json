@@ -1,33 +1,35 @@
 {
-    "name": "htmlizer",
-    "author": "munawwar",
-    "description": "HTML Templates",
-    "version": "0.8.0",
-    "main": "src/Htmlizer.js",
-    "dependencies": {
-        "jsdom": "0.10.3"
-    },
-    "devDependencies": {
-        "mocha": "1.18.2"
-    },
-    "directories": {
-        "test": "test"
-    },
-    "scripts": {
-        "test": "make test"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Munawwar/htmlizer"
-    },
-    "keywords": [
-        "html",
-        "knockout",
-        "templates"
-    ],
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/Munawwar/htmlizer/issues"
-    },
-    "homepage": "https://github.com/Munawwar/htmlizer"
+  "name": "htmlizer",
+  "author": "munawwar",
+  "description": "HTML Templates",
+  "version": "0.8.0",
+  "main": "src/Htmlizer.js",
+  "dependencies": {
+    "domhandler": "2.3.0",
+    "htmlparser2": "3.8.3"
+  },
+  "devDependencies": {
+    "jsdom": "0.10.3"
+    "mocha": "1.18.2"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Munawwar/htmlizer"
+  },
+  "keywords": [
+    "html",
+    "knockout",
+    "templates"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Munawwar/htmlizer/issues"
+  },
+  "homepage": "https://github.com/Munawwar/htmlizer"
 }
