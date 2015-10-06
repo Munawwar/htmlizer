@@ -393,6 +393,10 @@
                     if (ret) {
                         return ret;
                     }
+                } else if (node.type === 'directive') {
+                    funcBody += CODE(function () {
+                        output += '<' + $$(doctype) + '>';
+                    }, {doctype: node.data});
                 }
             }, this);
 
