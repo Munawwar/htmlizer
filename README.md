@@ -19,17 +19,24 @@ This looks sane, but is unfortunately not parsable by most HTML parsers.
 
 Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid CSS syntax and some parsers may throw an error.
 
+What's new in v2
+================
+Performance improvement
+-----------------------
+With v2, to speed up performance on nodejs, jsdom as a dependency has been removed and it instead compiles templates into JS functions to generate the output.
+v2 only supports server-side rendering (unlike v1).
+
+The following are some of the implications due to this change:
+1. toDocumentFragment() method has been removed.
+2. $element KO binding context cannot be used anymore.
+3. template binding interface has changed.
+
 Usage
 -----
 
 Render template as HTML string:
 ```
 (new Htmlizer('<template string>')).toString(dataObject);
-```
-
-Render template as DocumentFragment:
-```
-(new Htmlizer('<template string>')).toDocumentFragment(dataObject);
 ```
 
 Template syntax
@@ -253,7 +260,6 @@ Supports all the binding contexts documented for KO 3.0 [here](http://knockoutjs
 Template:
 <div data-bind="foreach: {data: items, as: 'obj'}">
     <!-- ko foreach: subItems -->
-        <span data-bind="text: $element.nodeName"></span>
         <span data-bind="text: obj.name"></span>
         <span data-bind="text: $parent.name"></span>
         <span data-bind="text: $index"></span>
@@ -276,7 +282,6 @@ Data:
 Output:
 <div>
 
-        <span>SPAN</span>
         <span>item1</span>
         <span>item1</span>
         <span>0</span>
