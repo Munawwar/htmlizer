@@ -9,7 +9,7 @@
     "htmlparser2": "3.8.3"
   },
   "devDependencies": {
-    "jsdom": "0.10.3"
+    "jsdom": "1.x",
     "mocha": "1.18.2"
   },
   "directories": {

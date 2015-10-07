@@ -1,4 +1,4 @@
-/*global module, require, define, $$*/
+/*global module, require, define, $$, $_*/
 /*jslint evil: true*/
 
 /**
@@ -69,8 +69,6 @@
 
     Htmlizer.prototype = {
         init: function () {
-            console.log(this.frag);
-
             var stack = [], //Keep track of ifs and fors
                 blocks = [],
                 block;
@@ -142,15 +140,18 @@
                     };
                 }
 
-                var output = '';
+                var output = '',
+                    val;
             });
 
             //Convert vdom into a resuable function
             traverse(this.frag, function (node) {
-                console.log(node.type);
-
                 var val, match, tempFrag, inner;
-                if (node.type === 'tag') {
+                if (node.type === 'text') {
+                    funcBody += CODE(function (text, output) {
+                        output += this.htmlEncode($$(text));
+                    }, {text: node.data});
+                } else if (node.type === 'tag') {
 
                     //Generate open tag (without attributes and >)
                     funcBody += CODE(function (output, tag) {
@@ -278,13 +279,13 @@
 
                     if (voidTags[node.name]) {
                         //Close open tag
-                        funcBody += CODE(function () {
+                        funcBody += CODE(function (output) {
                             output += '/>';
                         });
                     //For non-void tags.
                     } else {
                         //Close open tag
-                        funcBody += CODE(function () {
+                        funcBody += CODE(function (output) {
                             output += '>';
                         });
 
@@ -294,17 +295,25 @@
                             /*if (binding === 'ifnot') {
                                 value = '!(' + value + ')';
                             }
+                            */
 
                             //First evaluate if
                             if (binding === 'if') {
-                                val = exprEvaluator(value, context, data, node);
-                                if (!val) {
-                                    toRemove = toRemove.concat(this.slice(node.childNodes));
-                                    ret = 'continue';
-                                    return true;
-                                }
+                                funcBody += CODE(function (expr, ifBody, context, data, output, val) {
+                                    val = this.exprEvaluator($$(expr), context, data);
+                                    if (val) {
+                                        output += (function () {
+                                            $_(ifBody);
+                                        }.call(this));
+                                    }
+                                }, {
+                                    expr: value,
+                                    ifBody: funcToString((new Htmlizer(node.children)).toString)
+                                });
+                                ret = 'continue';
                             }
 
+                            /*
                             if (binding === 'foreach') {
                                 if (value[0] === '{') {
                                     inner = this.parseObjectLiteral(value);
@@ -333,7 +342,7 @@
                             */
 
                             if (binding === 'text') {
-                                funcBody += CODE(function (data, context, expr) {
+                                funcBody += CODE(function (data, context, expr, output) {
                                     output += this.elementRenderer.text.call(this, $$(expr), data, context);
                                 }, {expr: value});
                             }
@@ -394,7 +403,7 @@
                         return ret;
                     }
                 } else if (node.type === 'directive') {
-                    funcBody += CODE(function () {
+                    funcBody += CODE(function (doctype, output) {
                         output += '<' + $$(doctype) + '>';
                     }, {doctype: node.data});
                 }
@@ -416,7 +425,7 @@
              * Assuming attr parameter is html encoded.
              */
             attr: function (attr, expr, context, data) {
-                val = this.exprEvaluator(expr, context, data);
+                var val = this.exprEvaluator(expr, context, data);
                 if (val || typeof val === 'string' || typeof val === 'number') {
                     return " " + attr + '=' + this.generateAttribute(val);
                 } else {
@@ -426,7 +435,7 @@
             },
 
             text: function (expr, context, data) {
-                val = this.exprEvaluator(expr, context, data);
+                var val = this.exprEvaluator(expr, context, data);
                 if (val === null || val === undefined) {
                     val = '';
                 }
@@ -476,13 +485,36 @@
         },
 
         generateAttribute: function (val) {
-            return '"' + this.htmlEncode(val).replace(/"/g, '\\"') + '"';
+            val = this.htmlEncode(val).replace(/"/g, '&quot;');
+            return JSON.stringify(val); //Escape \n\r etc with JSON.stringify
         },
 
         saferEval: saferEval,
 
         exprEvaluator: exprEvaluator
     };
+
+    /*This function is only intended for debugging purposes at the moment*/
+    function simplerVDom(o) {
+        if (Array.isArray(o)) {
+            return o.map(simplerVDom);
+        } else {
+            var n = {};
+            Object.keys(o).forEach(function (k) {
+                n[k] = o[k];
+            }, this);
+            delete n.parent;
+            delete n.next;
+            delete n.prev;
+            if (o.children) {
+                n.children = simplerVDom(o.children);
+                if (n.children.length < 1) {
+                    delete n.children;
+                }
+            }
+            return n;
+        }
+    }
 
     /**
      * VDOM traversal.
@@ -506,10 +538,16 @@
                 if (ret2 === 'return') {
                     ret = o;
                 }
-                return (ret2 === 'break' || ret2 === 'return' || (typeof ret2 !== 'string'));
+                return (ret2 === 'break' || ret2 === 'return' || (typeof ret2 !== 'string' && ret2 !== undefined));
             });
         }
         return ret;
+    }
+
+    //Convert function body to string.
+    function funcToString(func) {
+        var str = func.toString();
+        return str.slice(str.indexOf('{') + 1, str.lastIndexOf('}'));
     }
 
     /**
@@ -517,6 +555,10 @@
      * @param {String} strOrFunc String with placeholders. If this param is a function it's body is converted to string and then placeholders are replaced.
      * @param {Object|...} arg If object then you can use {propertyName} as placeholder.
      * Else you can supply n number of args and use {argument index} as placholder
+     *
+     * There are two types of placeholder:
+     * 1. $$(value) - This will be quoted if value is a string.
+     * 2. $_(value) - value will be treated as an expression/code, so it will be added as-is.
      * @method format
      * @example
      *
@@ -526,36 +568,21 @@
      *
      */
     function CODE(strOrFunc, arg) {
-        var str = strOrFunc;
-        if (typeof str === 'function') {
-            //Convert function body to string.
-            str = strOrFunc.toString();
-            str = str.slice(str.indexOf('{') + 1, str.lastIndexOf('}'));
-        }
+        var str = (typeof strOrFunc === 'function' ? funcToString(strOrFunc) : strOrFunc);
         if (arguments.length === 1) {
             return str;
         }
         if (typeof arg !== 'object') {
             arg = Array.prototype.slice.call(arguments, 1);
         }
-        return str.replace(/(^|[^\\])\$\$\((\w+)\)/g, function (m, p, index) {
+        return str.replace(/(^|[^\\])\$(\$|_)\((\w+)\)/g, function (m, p, f, index) {
             var x = arg[index];
-            if (typeof x === 'string') {
-                x = '"' + x.replace(/"/g, '\\"') + '"';
+            if (f === '$' && typeof x === 'string') {
+                x = JSON.stringify(x); //Escape \n\r, quotes etc with JSON.stringify
             }
             return (p || '') + (x !== undefined ? x : '');
         });
     }
-
-    //FIXME: Remove this later..
-    //Runs a test
-    var t = new Htmlizer('<button onclick="blah()" data-bind="text: btnText, attr: {class: cls, title: titleText}"></button>');
-    console.log(t.toString.toString());
-    console.log(t.toString({
-        btnText: 'Click here',
-        titleText: 'abc " def',
-        cls: 'btn btn-default' //bootstrap 3 button css class
-    }));
 
     return Htmlizer;
 }, function () {
