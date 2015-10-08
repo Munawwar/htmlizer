@@ -5,6 +5,7 @@
   "version": "0.8.0",
   "main": "src/Htmlizer.js",
   "dependencies": {
+    "cssom": "0.3.0",
     "domhandler": "2.3.0",
     "htmlparser2": "3.8.3"
   },

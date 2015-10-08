@@ -6,27 +6,24 @@
  * The MIT License (MIT)
  * Copyright (c) 2015 Munawwar
  */
-(function (root, factory, saferEval, exprEvaluator) {
+(function (factory, saferEval, exprEvaluator) {
     if (typeof exports === 'object') {
         module.exports = factory(
             saferEval,
             exprEvaluator,
             require('./js-object-literal-parse.js'),
             require('htmlparser2'),
+            require('cssom'),
             require('domhandler')
         );
     }
-}(this, function (saferEval, exprEvaluator, parseObjectLiteral, htmlparser, domhandler) {
+}(function (saferEval, exprEvaluator, parseObjectLiteral, htmlparser, cssom) {
     function unwrap(str) {
         var o = {};
         str.split(',').forEach(function (val) {
             o[val] = true;
         });
         return o;
-    }
-
-    function replaceJsCssPropWithCssProp(m) {
-        return '-' + m.toLowerCase();
     }
 
     //HTML 4 and 5 void tags
@@ -140,8 +137,7 @@
                     };
                 }
 
-                var output = '',
-                    val;
+                var output = '', val, className, conditionalStyles;
             });
 
             //Convert vdom into a resuable function
@@ -178,6 +174,96 @@
                     //First convert all the attribute related bindings.
                     this.forEachObjectLiteral(bindOpts, function (binding, value) {
 
+                        if (binding === 'css') {
+                            var constantClasses = unwrap((node.attribs.class || '').trim().replace(/ /g, ','));
+                            delete node.attribs.class;
+
+                            if (value[0] === '{') {
+                                var conditionalClasses = {};
+                                this.forEachObjectLiteral(value.slice(1, -1), function (className, expr) {
+                                    //If class is defined in class attribute and also as a binding, then
+                                    //remove from constantClasses.
+                                    if (constantClasses[className]) {
+                                        delete constantClasses[className];
+                                    }
+                                    conditionalClasses[className] = expr;
+                                });
+
+                                constantClasses = Object.keys(constantClasses).join(' ');
+                                funcBody += CODE(function (output, context, data) {
+                                    output += ' class="' + $$(constantClasses);
+
+                                    val = $_(conditionalClasses);
+                                    Object.keys(val).forEach(function (className) {
+                                        var expr = val[className];
+                                        if (this.exprEvaluator(expr, context, data)) {
+                                            output += ' ' + className;
+                                        }
+                                    }, this);
+
+                                    output += '"';
+                                }, {
+                                    constantClasses: constantClasses,
+                                    conditionalClasses: JSON.stringify(conditionalClasses)
+                                });
+                            } else {
+                                constantClasses = Object.keys(constantClasses).join(' ');
+                                funcBody += CODE(function (output, context, data, className) {
+                                    output += ' class="' + $$(constantClasses);
+
+                                    className = this.exprEvaluator($$(value), context, data);
+                                    if (className) {
+                                        output += ' ' + className;
+                                    }
+
+                                    output += '"';
+                                }, {
+                                    constantClasses: constantClasses,
+                                    value: value
+                                });
+                            }
+                        }
+
+                        if (binding === 'style') {
+                            var constantStyles = this.parseCSSDeclarations(node.attribs.style || ''),
+                                conditionalStyles = {};
+                            delete node.attribs.style;
+
+                            this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
+                                prop = this.camelCaseToCSSProp(prop);
+                                //If CSS property is defined in style attribute and also
+                                //as a binding, then remove it from constantStyles.
+                                if (constantStyles[prop]) {
+                                    delete constantStyles[prop];
+                                }
+                                conditionalStyles[prop] = value;
+                            }, this);
+
+                            //Convert constantStyles to semi-color separated CSS declaration string.
+                            var styles = '';
+                            Object.keys(constantStyles).forEach(function (prop) {
+                                styles += prop + ':' + constantStyles[prop].replace(/"/g, '\\"') + '; ';
+                            });
+                            constantStyles = styles;
+
+                            funcBody += CODE(function (output, context, data) {
+                                output += ' style="' + $$(constantStyles);
+
+                                conditionalStyles = $_(conditionalStyles);
+                                Object.keys(conditionalStyles).forEach(function (prop) {
+                                    val = this.exprEvaluator(conditionalStyles[prop], context, data) || null;
+                                    if (val || typeof val === 'string' || typeof val === 'number') {
+                                        output += prop + ':' + val.replace(/"/g, '\\"') + '; ';
+                                    }
+                                }, this);
+
+                                output += '"';
+                            }, {
+                                constantStyles: constantStyles,
+                                conditionalStyles: JSON.stringify(conditionalStyles)
+                            });
+                        }
+
                         if (binding === 'attr') {
                             this.forEachObjectLiteral(value.slice(1, -1), function (attr, expr) {
                                 if (node.attribs[attr]) {
@@ -203,39 +289,8 @@
                             }, this);
                         }
 
-                        /*
-                        if (binding === 'css') {
-                            if (value[0] === '{') {
-                               this.forEachObjectLiteral(value.slice(1, -1), function (className, expr) {
-
-                                   val = exprEvaluator(expr, context, data, node);
-                                   if (val) {
-                                       $(node).addClass(className);
-                                   } else {
-                                       $(node).removeClass(className);
-                                   }
-                               });
-                           } else {
-                               var className = exprEvaluator(value, context, data, node);
-                               if (className) {
-                                   $(node).addClass(className);
-                               }
-                           }
-                        }
-
-                        if (binding === 'style') {
-                            this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
-                                val = exprEvaluator(value, context, data, node) || null;
-                                if (val || typeof val === 'string' || typeof val === 'number') {
-                                    node.style.setProperty(prop.replace(/[A-Z]/g, replaceJsCssPropWithCssProp), val);
-                                } else { //undefined, null, false
-                                    node.style.removeProperty(prop.replace(/[A-Z]/g, replaceJsCssPropWithCssProp));
-                                }
-                            });
-                        }
-
                         //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
-
+                        /*
                         if (binding === 'disable' || binding === 'enable') {
                             val = exprEvaluator(value, context, data, node);
                             var disable = (binding === 'disable' ? val : !val);
@@ -478,6 +533,26 @@
                     return (callback.call(scope, tuple[0], tuple[1]) === true);
                 });
             }
+        },
+
+        /**
+         * @param {String} styleProps Semi-colon separated style declarations
+         */
+        parseCSSDeclarations: function (styleProps) {
+            var stylesObj = cssom.parse('whatever { ' + styleProps + '}').cssRules[0].style,
+                styles = {};
+            //Create a cleaner object
+            for (var i = 0; i < stylesObj.length; i += 1) {
+                var property = stylesObj[i];
+                styles[property] = stylesObj[property];
+            }
+            return styles;
+        },
+
+        camelCaseToCSSProp: function (prop) {
+            return prop.replace(/[A-Z]/g, function (m) {
+                return '-' + m.toLowerCase();
+            });
         },
 
         htmlEncode: function (str) {

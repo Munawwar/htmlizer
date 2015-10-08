@@ -79,8 +79,6 @@ describe('run inline "if" statement test', function () {
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
         df = htmlToDocumentFragment(outputHtml);
-    //console.log(tpl.toString.toString());
-    //console.log(outputHtml);
     it('it should have 2 HTMLElements', function () {
         assert.equal(2, countElements(df));
     });
@@ -146,6 +144,7 @@ describe('run container-less "foreach" statement test', function () {
         assert.equal(6, countElements(df));
     });
 });
+*/
 
 describe('run css and style binding test', function () {
     var html = fetch('test/css-and-style-binding-tpl.html'),
@@ -173,6 +172,7 @@ describe('run css dynamic class binding test', function () {
     });
 });
 
+/*
 describe('run binding context test', function () {
     var html = fetch('test/binding-context-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
