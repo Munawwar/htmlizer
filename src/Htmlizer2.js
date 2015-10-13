@@ -276,17 +276,6 @@
                                     expr: expr
                                 });
                             }, this);
-
-                            //Add the attributes that were part of element's markup.
-                            Object.keys(node.attribs).forEach(function (attr) {
-                                var value = node.attribs[attr];
-                                funcBody += CODE(function (output) {
-                                    output += ' ' + $$(attr) + '=' + $$(value);
-                                }, {
-                                    attr: this.htmlEncode(attr),
-                                    value: this.generateAttribute(value)
-                                });
-                            }, this);
                         }
 
                         //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
@@ -330,6 +319,17 @@
                             }
                         }
                         */
+                    }, this);
+
+                    //Add the attributes that were part of element's markup.
+                    Object.keys(node.attribs).forEach(function (attr) {
+                        var value = node.attribs[attr];
+                        funcBody += CODE(function (output) {
+                            output += ' ' + $$(attr) + '=' + $$(value);
+                        }, {
+                            attr: this.htmlEncode(attr),
+                            value: this.generateAttribute(value)
+                        });
                     }, this);
 
                     if (voidTags[node.name]) {
