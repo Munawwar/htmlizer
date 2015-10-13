@@ -393,25 +393,20 @@
                             }
 
                             if (binding === 'text') {
-                                funcBody += CODE(function (data, context, expr, output) {
+                                funcBody += CODE(function (expr, data, context, output) {
                                     output += this.elementRenderer.text.call(this, $$(expr), context, data);
                                 }, {expr: value});
                                 ret = 'continue';
                             }
 
-                            /*
                             if (binding === 'html') {
-                                $(node).empty();
-                                val = exprEvaluator(value, context, data, node);
-                                if (val !== undefined && val !== null && val !== '') {
-                                    var nodes = this.parseHTML(val + '');
-                                    if (nodes) {
-                                        tempFrag = this.moveToNewFragment(nodes);
-                                        node.appendChild(tempFrag);
-                                    }
-                                }
+                                funcBody += CODE(function (expr, data, context, val, output) {
+                                    output += this.elementRenderer.html.call(this, $$(expr), context, data);
+                                }, {expr: value});
+                                ret = 'continue';
                             }
 
+                            /*
                             if (binding === 'template') {
                                 $(node).empty();
                                 inner = this.parseObjectLiteral(value);
@@ -470,6 +465,13 @@
         },
 
         /**
+         * This method is generated on the fly, from the init method.
+         */
+        toString: function (data, context) {
+            /*Method body is generated on the fly*/
+        },
+
+        /**
          * Renders for bindings on elements.
          */
         elementRenderer: {
@@ -492,6 +494,16 @@
                     val = '';
                 }
                 return this.htmlEncode(val + '');
+            },
+
+            html: function (expr, context, data) {
+                var val = this.exprEvaluator(expr, context, data);
+                if (val !== undefined && val !== null && val !== '') {
+                    //Parse html
+                    var dom = this.parseHTML(val + '');
+                    return this.vdomToHtml(dom);
+                }
+                return '';
             }
         },
 
@@ -582,6 +594,41 @@
             parser.write(tpl);
             parser.done();
             return ret;
+        },
+
+        /**
+         * Converts vdom from domhandler to HTML.
+         */
+        vdomToHtml: function (dom) {
+            var html = '';
+            dom.forEach(function (node) {
+                if (node.type === 'tag') {
+                    var tag = node.name;
+                    html += '<' + tag;
+                    Object.keys(node.attribs).forEach(function (attr) {
+                        html += ' ' + attr + '="' + node.attribs[attr.value].replace(/"/g, '&quot;') + '"';
+                    });
+                    html += (voidTags[tag] ? '/>' : '>');
+                    if (!voidTags[tag]) {
+                        html += this.vdomToHtml(node.children);
+                        html += '</' + tag + '>';
+                    }
+                } else if (node.type === 'text') {
+                    var text = node.data || '';
+                    //escape <,> and &.
+                    html += text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                } else if (node.type === 'comment') {
+                    html += '<!-- ' + node.data.trim() + ' -->';
+                } else if (node.type === 'script' || node.type === 'style') {
+                    //No need to escape text inside script or style tag.
+                    html += '<' + node.name;
+                    Object.keys(node.attribs).forEach(function (attr) {
+                        html += ' ' + attr + '="' + node.attribs[attr.value].replace(/"/g, '&quot;') + '"';
+                    });
+                    html += '>' + ((node.children[0] || {}).data || '') + '</' + node.name + '>';
+                }
+            }, this);
+            return html;
         },
 
         /**

@@ -48,6 +48,7 @@ describe('run container-less text binding test', function () {
         assert.equal('Click here', lastButton.textContent.trim());
     });
 });
+*/
 
 describe('run html bind test', function () {
     var html = fetch('test/html-binding-tpl.html'),
@@ -59,6 +60,7 @@ describe('run html bind test', function () {
         assert.equal(3, countElements(df));
     });
 });
+/*
 describe('run container-less html binding test', function () {
     var html = fetch('test/html-inline-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
