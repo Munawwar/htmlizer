@@ -6,10 +6,10 @@
  * The MIT License (MIT)
  * Copyright (c) 2015 Munawwar
  */
-(function (factory, saferEval, exprEvaluator) {
+(function (factory, functionGenerator, exprEvaluator) {
     if (typeof exports === 'object') {
         module.exports = factory(
-            saferEval,
+            functionGenerator,
             exprEvaluator,
             require('./js-object-literal-parse.js'),
             require('htmlparser2'),
@@ -17,7 +17,7 @@
             require('domhandler')
         );
     }
-}(function (saferEval, exprEvaluator, parseObjectLiteral, htmlparser, cssom) {
+}(function (functionGenerator, exprEvaluator, parseObjectLiteral, htmlparser, cssom) {
     function unwrap(str) {
         var o = {};
         str.split(',').forEach(function (val) {
@@ -368,24 +368,19 @@
                                 ret = 'continue';
                             }
 
-                            /*
                             if (binding === 'foreach') {
-                                if (value[0] === '{') {
-                                    inner = this.parseObjectLiteral(value);
-                                    val = {
-                                        items: exprEvaluator(inner.data, context, data, node),
-                                        as: inner.as.slice(1, -1) //strip string quote
-                                    };
-                                } else {
-                                    val = {items: exprEvaluator(value, context, data, node)};
-                                }
-                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
-                                if (tempFrag.firstChild && val.items instanceof Array) {
-                                    tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
-                                    node.appendChild(tempFrag);
-                                }
+                                funcBody += CODE(function (foreachBody, context, data, output) {
+                                    output += this.handleForeachBinding($$(value), function (data, context) {
+                                        $_(foreachBody);
+                                    }, context, data);
+                                }, {
+                                    value: value,
+                                    foreachBody: funcToString((new Htmlizer(node.children)).toString)
+                                });
+                                ret = 'continue';
                             }
 
+                            /*
                             if (binding === 'with') {
                                 val = exprEvaluator(value, context, data, node);
 
@@ -469,7 +464,7 @@
                 return output;
             });
 
-            this.toString = saferEval('data', 'context', funcBody);
+            this.toString = functionGenerator('data', 'context', funcBody);
         },
 
         /**
@@ -496,6 +491,76 @@
                 }
                 return this.htmlEncode(val);
             }
+        },
+
+        handleForeachBinding: function (expr, foreachBody, context, data) {
+            var val;
+            if (expr[0] === '{') {
+                var inner = this.parseObjectLiteral(expr);
+                val = {
+                    items: this.exprEvaluator(inner.data, context, data),
+                    as: inner.as.slice(1, -1) //strip string quote
+                };
+            } else {
+                val = {items: this.exprEvaluator(expr, context, data)};
+            }
+
+            var output = '';
+            if (val.items instanceof Array) {
+                output += this.executeForEach(foreachBody, context, data, val.items, val.as);
+            }
+            return output;
+        },
+
+        /**
+         * @private
+         * @param {Function} foreachBody
+         * @param {Object} context
+         * @param {Object} data Data object
+         * @param {Array} items The array to iterate through
+         */
+        executeForEach: function (foreachBody, context, data, items, as) {
+            var output = '';
+            items.forEach(function (item, index) {
+                var newContext = this.getNewContext(context, data);
+                //foreach special properties
+                newContext.$data = newContext.$rawData = item;
+                newContext.$index = index;
+
+                if (as) {
+                    newContext[as] = item;
+                    //Add to _as so that sub templates can access them.
+                    newContext._as = newContext._as || [];
+                    newContext._as.push([as, item]);
+                }
+
+                //..finally execute
+                output += foreachBody.call(this, item, newContext);
+            }, this);
+            return output;
+        },
+
+        /**
+         * @private
+         */
+        getNewContext: function (parentContext, data) {
+            var newContext = {
+                $root: parentContext.$root,
+                $parent: parentContext.$data,
+                $parentContext: parentContext,
+                $parents: ([data]).concat(parentContext.$parents),
+                $data: data,
+                $rawData: data
+            };
+
+            //Copy 'as' references from parent. This is done recursively, so it will have all the 'as' references from ancestors.
+            if (parentContext._as) {
+                newContext._as = parentContext._as.slice();
+                newContext._as.forEach(function (tuple) {
+                    newContext[tuple[0]] = tuple[1];
+                });
+            }
+            return newContext;
         },
 
         parseHTML: function (tpl) {
@@ -564,7 +629,7 @@
             return JSON.stringify(val); //Escape \n\r etc with JSON.stringify
         },
 
-        saferEval: saferEval,
+        functionGenerator: functionGenerator,
 
         exprEvaluator: exprEvaluator
     };
