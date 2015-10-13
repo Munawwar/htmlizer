@@ -380,16 +380,17 @@
                                 ret = 'continue';
                             }
 
-                            /*
                             if (binding === 'with') {
-                                val = exprEvaluator(value, context, data, node);
-
-                                tempFrag = this.moveToNewFragment(this.slice(node.childNodes));
-                                if (tempFrag.firstChild && val !== null && val !== undefined) {
-                                    node.appendChild(this.executeInNewContext(tempFrag, context, val));
-                                }
+                                funcBody += CODE(function (expr, withBody, context, data, val, output) {
+                                    output += this.handleWithBinding($$(expr), function (data, context) {
+                                        $_(withBody);
+                                    }, context, data);
+                                }, {
+                                    expr: value,
+                                    withBody: funcToString((new Htmlizer(node.children)).toString)
+                                });
+                                ret = 'continue';
                             }
-                            */
 
                             if (binding === 'text') {
                                 funcBody += CODE(function (data, context, expr, output) {
@@ -489,8 +490,14 @@
                 if (val === null || val === undefined) {
                     val = '';
                 }
-                return this.htmlEncode(val);
+                return this.htmlEncode(val + '');
             }
+        },
+
+        handleWithBinding: function (expr, withBody, context, data) {
+            var val = this.exprEvaluator(expr, context, data),
+                newContext = this.getNewContext(context, val);
+            return withBody.call(this, val, newContext);
         },
 
         handleForeachBinding: function (expr, foreachBody, context, data) {
@@ -673,15 +680,21 @@
         }
         var ret = callback.call(context, o);
         if (!ret && o.children) {
-            return o.children.some(function (item, index) {
+            o.children.some(function (item, index) {
                 var ret2 = traverse(item, callback, context, {parent: o, index: index});
-                if (ret2 === 'return') {
-                    ret = o;
+                if (typeof ret2 !== 'string' && ret2 !== undefined) {
+                    ret = ret2;
+                    ret2 = 'return';
                 }
-                return (ret2 === 'break' || ret2 === 'return' || (typeof ret2 !== 'string' && ret2 !== undefined));
+                return (ret2 === 'break' || ret2 === 'return');
             });
         }
-        return ret;
+        if (ret === 'return') {
+            ret = o;
+        }
+        if (ret !== 'continue') {
+            return ret;
+        }
     }
 
     //Convert function body to string.

@@ -231,6 +231,7 @@ describe('run "ifnot" binding test', function () {
         assert.equal(1, countElements(df));
     });
 });
+*/
 
 describe('run inline "with" binding test', function () {
     var html = fetch('test/with-inline-tpl.html'),
@@ -252,6 +253,7 @@ describe('run inline "with" binding test', function () {
     });
 });
 
+/*
 describe('run container-less "with" binding test', function () {
     var html = fetch('test/with-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
