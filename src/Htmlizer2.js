@@ -127,7 +127,7 @@
             }
 
             //Start generating the toString() method of this instance.
-            var funcBody = CODE(function (context, data) {
+            var funcBody = CODE(function (data, context) {
                 if (!context) {
                     context = {
                         $parents: [],
@@ -190,7 +190,7 @@
                                 });
 
                                 constantClasses = Object.keys(constantClasses).join(' ');
-                                funcBody += CODE(function (output, context, data) {
+                                funcBody += CODE(function (data, context, output) {
                                     output += ' class="' + $$(constantClasses);
 
                                     val = $_(conditionalClasses);
@@ -208,7 +208,7 @@
                                 });
                             } else {
                                 constantClasses = Object.keys(constantClasses).join(' ');
-                                funcBody += CODE(function (output, context, data, className) {
+                                funcBody += CODE(function (data, context, output, className) {
                                     output += ' class="' + $$(constantClasses);
 
                                     className = this.exprEvaluator($$(value), context, data);
@@ -246,7 +246,7 @@
                             });
                             constantStyles = styles;
 
-                            funcBody += CODE(function (output, context, data) {
+                            funcBody += CODE(function (data, context, output) {
                                 output += ' style="' + $$(constantStyles);
 
                                 conditionalStyles = $_(conditionalStyles);
@@ -269,8 +269,8 @@
                                 if (node.attribs[attr]) {
                                     delete node.attribs[attr]; //The attribute will be overridden by binding anyway.
                                 }
-                                funcBody += CODE(function (output, context, data) {
-                                    output += this.elementRenderer.attr.call(this, $$(attr), $$(expr), context, data);
+                                funcBody += CODE(function (data, context, output) {
+                                    output += this.inlineBindings.attr.call(this, $$(attr), $$(expr), context, data);
                                 }, {
                                     attr: this.htmlEncode(attr),
                                     expr: expr
@@ -354,7 +354,7 @@
 
                             //First evaluate if
                             if (binding === 'if') {
-                                funcBody += CODE(function (expr, ifBody, context, data, output, val) {
+                                funcBody += CODE(function (expr, ifBody, data, context, output, val) {
                                     val = this.exprEvaluator($$(expr), context, data);
                                     if (val) {
                                         output += (function () {
@@ -369,8 +369,8 @@
                             }
 
                             if (binding === 'foreach') {
-                                funcBody += CODE(function (foreachBody, context, data, output) {
-                                    output += this.handleForeachBinding($$(value), function (data, context) {
+                                funcBody += CODE(function (foreachBody, data, context, output) {
+                                    output += this.inlineBindings.foreach.call(this, $$(value), function (data, context) {
                                         $_(foreachBody);
                                     }, context, data);
                                 }, {
@@ -381,8 +381,8 @@
                             }
 
                             if (binding === 'with') {
-                                funcBody += CODE(function (expr, withBody, context, data, val, output) {
-                                    output += this.handleWithBinding($$(expr), function (data, context) {
+                                funcBody += CODE(function (expr, withBody, data, context, val, output) {
+                                    output += this.inlineBindings.with.call(this, $$(expr), function (data, context) {
                                         $_(withBody);
                                     }, context, data);
                                 }, {
@@ -394,14 +394,14 @@
 
                             if (binding === 'text') {
                                 funcBody += CODE(function (expr, data, context, output) {
-                                    output += this.elementRenderer.text.call(this, $$(expr), context, data);
+                                    output += this.inlineBindings.text.call(this, $$(expr), context, data);
                                 }, {expr: value});
                                 ret = 'continue';
                             }
 
                             if (binding === 'html') {
                                 funcBody += CODE(function (expr, data, context, val, output) {
-                                    output += this.elementRenderer.html.call(this, $$(expr), context, data);
+                                    output += this.inlineBindings.html.call(this, $$(expr), context, data);
                                 }, {expr: value});
                                 ret = 'continue';
                             }
@@ -474,7 +474,7 @@
         /**
          * Renders for bindings on elements.
          */
-        elementRenderer: {
+        inlineBindings: {
             /**
              * Assuming attr parameter is html encoded.
              */
@@ -504,32 +504,32 @@
                     return this.vdomToHtml(dom);
                 }
                 return '';
-            }
-        },
+            },
 
-        handleWithBinding: function (expr, withBody, context, data) {
-            var val = this.exprEvaluator(expr, context, data),
-                newContext = this.getNewContext(context, val);
-            return withBody.call(this, val, newContext);
-        },
+            with: function (expr, withBody, context, data) {
+                var val = this.exprEvaluator(expr, context, data),
+                    newContext = this.getNewContext(context, val);
+                return withBody.call(this, val, newContext);
+            },
 
-        handleForeachBinding: function (expr, foreachBody, context, data) {
-            var val;
-            if (expr[0] === '{') {
-                var inner = this.parseObjectLiteral(expr);
-                val = {
-                    items: this.exprEvaluator(inner.data, context, data),
-                    as: inner.as.slice(1, -1) //strip string quote
-                };
-            } else {
-                val = {items: this.exprEvaluator(expr, context, data)};
-            }
+            foreach: function (expr, foreachBody, context, data) {
+                var val;
+                if (expr[0] === '{') {
+                    var inner = this.parseObjectLiteral(expr);
+                    val = {
+                        items: this.exprEvaluator(inner.data, context, data),
+                        as: inner.as.slice(1, -1) //strip string quote
+                    };
+                } else {
+                    val = {items: this.exprEvaluator(expr, context, data)};
+                }
 
-            var output = '';
-            if (val.items instanceof Array) {
-                output += this.executeForEach(foreachBody, context, data, val.items, val.as);
+                var output = '';
+                if (val.items instanceof Array) {
+                    output += this.executeForEach(foreachBody, context, data, val.items, val.as);
+                }
+                return output;
             }
-            return output;
         },
 
         /**
