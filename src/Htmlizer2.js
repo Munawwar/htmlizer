@@ -394,8 +394,9 @@
 
                             if (binding === 'text') {
                                 funcBody += CODE(function (data, context, expr, output) {
-                                    output += this.elementRenderer.text.call(this, $$(expr), data, context);
+                                    output += this.elementRenderer.text.call(this, $$(expr), context, data);
                                 }, {expr: value});
+                                ret = 'continue';
                             }
 
                             /*
