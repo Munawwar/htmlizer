@@ -124,7 +124,6 @@ describe('run inline "foreach" statement test', function () {
     });
 });
 
-/*
 describe('run container-less "foreach" statement test', function () {
     var html = fetch('test/foreach-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
@@ -146,7 +145,6 @@ describe('run container-less "foreach" statement test', function () {
         assert.equal(6, countElements(df));
     });
 });
-*/
 
 describe('run css and style binding test', function () {
     var html = fetch('test/css-and-style-binding-tpl.html'),

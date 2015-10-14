@@ -485,7 +485,7 @@
                     if ((match = stmt.match(syntaxRegex['if']))) {
 
                         block = this.findBlockFromStartNode(blocks, node);
-                        var nodes = this.getImmediateNodes(this.frag, node, block.end);
+                        var blockNodes = this.getImmediateNodes(this.frag, node, block.end);
 
                         funcBody += CODE(function (expr, ifBody, data, context, output, val) {
                             output += this.inlineBindings["if"].call(this, $$(expr), function () {
@@ -493,35 +493,26 @@
                             }, data, context);
                         }, {
                             expr: match[2],
-                            ifBody: funcToString((new Htmlizer(nodes)).toString)
+                            ifBody: funcToString((new Htmlizer(blockNodes)).toString)
                         });
 
                         ignoreTill = block.end;
-                    }/* else if ((match = stmt.match(syntaxRegex.foreach))) {
-                        inner = match[2].trim();
-                        if (inner[0] === '{') {
-                            inner = this.parseObjectLiteral(inner);
-                            val = {
-                                items: saferEval(inner.data, context, data, node),
-                                as: inner.as.slice(1, -1) //strip string quote
-                            };
-                        } else {
-                            val = {items: saferEval(inner, context, data, node)};
-                        }
-
+                    } else if ((match = stmt.match(syntaxRegex.foreach))) {
                         //Create a new htmlizer instance, render it and insert berfore this node.
                         block = this.findBlockFromStartNode(blocks, node);
-                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                        tempFrag = this.moveToNewFragment(blockNodes);
+                        blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
-                        toRemove.push(node);
-                        toRemove.push(block.end);
+                        funcBody += CODE(function (foreachBody, data, context, output) {
+                            output += this.inlineBindings.foreach.call(this, $$(value), function (data, context) {
+                                $_(foreachBody);
+                            }, context, data);
+                        }, {
+                            value: match[2].trim(),
+                            foreachBody: funcToString((new Htmlizer(blockNodes)).toString)
+                        });
 
-                        if (tempFrag.firstChild && val.items instanceof Array) {
-                            tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
-                            node.parentNode.insertBefore(tempFrag, node);
-                        }
-                    } else if ((match = stmt.match(syntaxRegex['with']))) {
+                        ignoreTill = block.end;
+                    }/* else if ((match = stmt.match(syntaxRegex['with']))) {
                         val = saferEval(match[2], context, data, node);
 
                         block = this.findBlockFromStartNode(blocks, node);
