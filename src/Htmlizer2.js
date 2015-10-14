@@ -483,7 +483,6 @@
 
                     //Process if statement
                     if ((match = stmt.match(syntaxRegex['if']))) {
-
                         block = this.findBlockFromStartNode(blocks, node);
                         var blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
@@ -513,7 +512,6 @@
 
                         ignoreTill = block.end;
                     } else if ((match = stmt.match(syntaxRegex['with']))) {
-
                         block = this.findBlockFromStartNode(blocks, node);
                         blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
@@ -527,33 +525,23 @@
                         });
 
                         ignoreTill = block.end;
-                    }/* else if ((match = stmt.match(syntaxRegex.text))) {
-                        val = saferEval(match[2], context, data, node);
-
+                    } else if ((match = stmt.match(syntaxRegex.text))) {
                         block = this.findBlockFromStartNode(blocks, node);
-                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                        tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
 
-                        toRemove.push(node);
-                        toRemove.push(block.end);
+                        funcBody += CODE(function (expr, data, context, output) {
+                            output += this.inlineBindings.text.call(this, $$(expr), context, data);
+                        }, {expr: match[2]});
 
-                        if (val !== null && val !== undefined) {
-                            node.parentNode.insertBefore(document.createTextNode(val), node);
-                        }
+                        ignoreTill = block.end;
                     } else if ((match = stmt.match(syntaxRegex.html))) {
-                        val = saferEval(match[2], context, data, node);
-
                         block = this.findBlockFromStartNode(blocks, node);
-                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                        tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
 
-                        toRemove.push(node);
-                        toRemove.push(block.end);
+                        funcBody += CODE(function (expr, data, context, val, output) {
+                            output += this.inlineBindings.html.call(this, $$(expr), context, data);
+                        }, {expr: match[2]});
 
-                        if (val !== null && val !== undefined) {
-                            node.parentNode.insertBefore(this.moveToNewFragment(this.parseHTML(val)), node);
-                        }
-                    }*/
+                        ignoreTill = block.end;
+                    }
                 } else if (node.type === 'script' || node.type === 'style') {
                     //TODO: Write test for text script and style tags
                     //No need to escape text inside script or style tag.
