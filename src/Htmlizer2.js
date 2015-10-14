@@ -150,6 +150,7 @@
                 }
                 var val, match, tempFrag, inner;
                 if (node.type === 'text') {
+                    //TODO: Write test for text htmlEncode
                     funcBody += CODE(function (text, output) {
                         output += this.htmlEncode($$(text));
                     }, {text: node.data});
@@ -455,6 +456,14 @@
                     if (ret) {
                         return ret;
                     }
+                } else if (node.type === 'script' || node.type === 'style') {
+                    //TODO: Write test for text script and style tags
+                    //No need to escape text inside script or style tag.
+                    var html = this.vdomToHtml([node]);
+                    funcBody += CODE(function (doctype, output) {
+                        output += $$(html);
+                    }, {html: html});
+                    return 'continue';
                 } else if (node.type === 'directive') {
                     funcBody += CODE(function (doctype, output) {
                         output += '<' + $$(doctype) + '>';
@@ -612,7 +621,7 @@
                     var tag = node.name;
                     html += '<' + tag;
                     Object.keys(node.attribs).forEach(function (attr) {
-                        html += ' ' + attr + '="' + node.attribs[attr.value].replace(/"/g, '&quot;') + '"';
+                        html += ' ' + attr + '=' + this.generateAttribute(node.attribs[attr.value]);
                     });
                     html += (voidTags[tag] ? '/>' : '>');
                     if (!voidTags[tag]) {
@@ -621,17 +630,18 @@
                     }
                 } else if (node.type === 'text') {
                     var text = node.data || '';
-                    //escape <,> and &.
-                    html += text.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;");
+                    html += this.htmlEncode(text); //escape <,> and &.
                 } else if (node.type === 'comment') {
                     html += '<!-- ' + node.data.trim() + ' -->';
                 } else if (node.type === 'script' || node.type === 'style') {
                     //No need to escape text inside script or style tag.
                     html += '<' + node.name;
                     Object.keys(node.attribs).forEach(function (attr) {
-                        html += ' ' + attr + '="' + node.attribs[attr.value].replace(/"/g, '&quot;') + '"';
-                    });
+                        html += ' ' + attr + '=' + this.generateAttribute(node.attribs[attr.value]);
+                    }, this);
                     html += '>' + ((node.children[0] || {}).data || '') + '</' + node.name + '>';
+                } else if (node.type === 'directive') {
+                    html += '<' + node.data + '>';
                 }
             }, this);
             return html;
