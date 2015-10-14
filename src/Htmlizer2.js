@@ -119,14 +119,18 @@
                         if (block) {
                             block.end = node;
                             blocks.push(block);
+                            if (node.parent !== block.start.parent) {
+                                //KO 3.0 throws an error but still continues?
+                                throw new Error('Cannot find closing comment tag to match: ' + block.start.data.trim());
+                            }
                         } else {
-                            console.warn('Extra end tag found.');
+                            console.warn('Extra end containerless tag found.');
                         }
                     }
                 }
             }, this);
             if (stack.length) {
-                throw new Error('Missing end tag for ' + stack[0].start.data.trim());
+                throw new Error('Cannot find closing comment tag to match: ' + stack[0].start.data.trim()) + '"';
             }
 
             //Start generating the toString() method of this instance.
@@ -144,7 +148,16 @@
             });
 
             //Convert vdom into a resuable function
+            var ignoreTill = null;
             traverse(this.frag, this.frag, function (node, isOpenTag) {
+                //Ignore till node.
+                if (ignoreTill) {
+                    if (ignoreTill === node) {
+                        ignoreTill = null;
+                    }
+                    return;
+                }
+
                 if (!isOpenTag) {
                     if (node.type === 'tag') {
                         //Generate closing tag
@@ -366,12 +379,9 @@
                             //First evaluate if
                             if (binding === 'if') {
                                 funcBody += CODE(function (expr, ifBody, data, context, output, val) {
-                                    val = this.exprEvaluator($$(expr), context, data);
-                                    if (val) {
-                                        output += (function () {
-                                            $_(ifBody);
-                                        }.call(this));
-                                    }
+                                    output += this.inlineBindings["if"].call(this, $$(expr), function () {
+                                        $_(ifBody);
+                                    }, data, context);
                                 }, {
                                     expr: value,
                                     ifBody: funcToString((new Htmlizer(node.children)).toString)
@@ -455,6 +465,102 @@
                     if (ret) {
                         return ret;
                     }
+                } else if (node.type === 'comment') {
+                    var stmt = node.data.trim();
+
+                    //Ignore all containerless statements beginning with "ko" if noConflict = true.
+                    if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
+                        funcBody += CODE(function (output, comment) {
+                            output += '<!-- ' + $$(comment) + ' -->';
+                        }, {comment: node.data});
+                        return;
+                    }
+
+                    //Convert ifnot: (...) to if: !(...)
+                    /*if ((match = stmt.match(syntaxRegex.ifnot))) {
+                        stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
+                    }*/
+
+                    //Process if statement
+                    if ((match = stmt.match(syntaxRegex['if']))) {
+
+                        block = this.findBlockFromStartNode(blocks, node);
+                        var nodes = this.getImmediateNodes(this.frag, node, block.end);
+
+                        funcBody += CODE(function (expr, ifBody, data, context, output, val) {
+                            output += this.inlineBindings["if"].call(this, $$(expr), function () {
+                                $_(ifBody);
+                            }, data, context);
+                        }, {
+                            expr: match[2],
+                            ifBody: funcToString((new Htmlizer(nodes)).toString)
+                        });
+
+                        ignoreTill = block.end;
+                    }/* else if ((match = stmt.match(syntaxRegex.foreach))) {
+                        inner = match[2].trim();
+                        if (inner[0] === '{') {
+                            inner = this.parseObjectLiteral(inner);
+                            val = {
+                                items: saferEval(inner.data, context, data, node),
+                                as: inner.as.slice(1, -1) //strip string quote
+                            };
+                        } else {
+                            val = {items: saferEval(inner, context, data, node)};
+                        }
+
+                        //Create a new htmlizer instance, render it and insert berfore this node.
+                        block = this.findBlockFromStartNode(blocks, node);
+                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                        tempFrag = this.moveToNewFragment(blockNodes);
+
+                        toRemove.push(node);
+                        toRemove.push(block.end);
+
+                        if (tempFrag.firstChild && val.items instanceof Array) {
+                            tempFrag = this.executeForEach(tempFrag, context, data, val.items, val.as);
+                            node.parentNode.insertBefore(tempFrag, node);
+                        }
+                    } else if ((match = stmt.match(syntaxRegex['with']))) {
+                        val = saferEval(match[2], context, data, node);
+
+                        block = this.findBlockFromStartNode(blocks, node);
+                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                        tempFrag = this.moveToNewFragment(blockNodes);
+
+                        toRemove.push(node);
+                        toRemove.push(block.end);
+
+                        if (tempFrag.firstChild && val !== null && val !== undefined) {
+                            node.parentNode.insertBefore(this.executeInNewContext(tempFrag, context, val), node);
+                        }
+                    } else if ((match = stmt.match(syntaxRegex.text))) {
+                        val = saferEval(match[2], context, data, node);
+
+                        block = this.findBlockFromStartNode(blocks, node);
+                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                        tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
+
+                        toRemove.push(node);
+                        toRemove.push(block.end);
+
+                        if (val !== null && val !== undefined) {
+                            node.parentNode.insertBefore(document.createTextNode(val), node);
+                        }
+                    } else if ((match = stmt.match(syntaxRegex.html))) {
+                        val = saferEval(match[2], context, data, node);
+
+                        block = this.findBlockFromStartNode(blocks, node);
+                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
+                        tempFrag = this.moveToNewFragment(blockNodes); //move to new DocumentFragment and discard
+
+                        toRemove.push(node);
+                        toRemove.push(block.end);
+
+                        if (val !== null && val !== undefined) {
+                            node.parentNode.insertBefore(this.moveToNewFragment(this.parseHTML(val)), node);
+                        }
+                    }*/
                 } else if (node.type === 'script' || node.type === 'style') {
                     //TODO: Write test for text script and style tags
                     //No need to escape text inside script or style tag.
@@ -520,10 +626,18 @@
                 return '';
             },
 
-            with: function (expr, withBody, context, data) {
+            "with": function (expr, withBody, context, data) {
                 var val = this.exprEvaluator(expr, context, data),
                     newContext = this.getNewContext(context, val);
                 return withBody.call(this, val, newContext);
+            },
+
+            "if": function (expr, ifBody, context, data) {
+                var val = this.exprEvaluator(expr, context, data);
+                if (val) {
+                    return ifBody.call(this);
+                }
+                return '';
             },
 
             foreach: function (expr, foreachBody, context, data) {
@@ -644,6 +758,51 @@
                 }
             }, this);
             return html;
+        },
+
+        /**
+         * @private
+         */
+        findBlockFromStartNode: function (blocks, node) {
+            return blocks.filter(function (block) {
+                return block.start === node;
+            })[0] || null;
+        },
+
+        /**
+         * @private
+         * Find all immediate nodes between two given nodes and return fragement.
+         */
+        getImmediateNodes: function (frag, startNode, endNode) {
+            var children = startNode.parent ?  startNode.parent.children : frag,
+                startPos = children.indexOf(startNode),
+                endPos = children.indexOf(endNode);
+            return this.makeNewFragment(children.slice(startPos + 1, endPos));
+        },
+
+        /**
+         * Makes a shallow copy of nodes, and puts them into an array.
+         *
+         * This is to detach nodes from their parent. Nodes are considered immutable, hence copy is needed.
+         * i.e. Doing node.parent = null, during a traversal could cause traversal logic to behave unexpectedly.
+         * Hence a shallow copy is made without parent instead.
+         */
+        makeNewFragment: function (nodes) {
+            var copy = nodes.map(function (node, index) {
+                var clone = {};
+                //Shallow clone
+                Object.keys(node).forEach(function (prop) {
+                    if (prop !== 'next' && prop !== 'prev' && prop !== 'parent') {
+                        clone[prop] = node[prop];
+                    }
+                });
+                return clone;
+            });
+            copy.forEach(function (cur, i) {
+                cur.prev = copy[i - 1];
+                cur.next = copy[i + 1];
+            });
+            return copy;
         },
 
         /**

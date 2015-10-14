@@ -86,7 +86,6 @@ describe('run inline "if" statement test', function () {
     });
 });
 
-/*
 describe('run container-less nested "if" statement test', function () {
     var html = fetch('test/if-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
@@ -113,7 +112,6 @@ describe('run mixed "if" statement test', function () {
         assert.equal(1, countElements(df));
     });
 });
-*/
 
 describe('run inline "foreach" statement test', function () {
     var html = fetch('test/foreach-inline-tpl.html'),
