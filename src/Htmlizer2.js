@@ -181,9 +181,9 @@
                     }, {tag: node.name});
 
                     var bindOpts = node.attribs[this.noConflict ? 'data-htmlizer' : 'data-bind'];
+                    delete node.attribs[this.noConflict ? 'data-htmlizer' : 'data-bind'];
 
                     if (bindOpts) {
-                        delete node.attribs[this.noConflict ? 'data-htmlizer' : 'data-bind'];
                         var conflict = [];
                         this.forEachObjectLiteral(bindOpts, function (binding) {
                             if (binding in conflictingBindings) {
@@ -265,7 +265,7 @@
                                 conditionalStyles[prop] = value;
                             }, this);
 
-                            //Convert constantStyles to semi-color separated CSS declaration string.
+                            //Convert constantStyles to semi-colon separated CSS declaration string.
                             var styles = '';
                             Object.keys(constantStyles).forEach(function (prop) {
                                 styles += prop + ':' + constantStyles[prop].replace(/"/g, '\\"') + '; ';
@@ -345,6 +345,10 @@
                             }
                         }
                         */
+
+                        if (this.noConflict && binding === 'data-bind') {
+                            node.attribs['data-bind'] = value;
+                        }
                     }, this);
 
                     //Add the attributes that were part of element's markup.
@@ -384,7 +388,7 @@
                                     }, data, context);
                                 }, {
                                     expr: value,
-                                    ifBody: funcToString((new Htmlizer(node.children)).toString)
+                                    ifBody: funcToString((new Htmlizer(node.children, this.cfg)).toString)
                                 });
                                 ret = 'continue';
                             }
@@ -396,7 +400,7 @@
                                     }, context, data);
                                 }, {
                                     value: value,
-                                    foreachBody: funcToString((new Htmlizer(node.children)).toString)
+                                    foreachBody: funcToString((new Htmlizer(node.children, this.cfg)).toString)
                                 });
                                 ret = 'continue';
                             }
@@ -408,7 +412,7 @@
                                     }, context, data);
                                 }, {
                                     expr: value,
-                                    withBody: funcToString((new Htmlizer(node.children)).toString)
+                                    withBody: funcToString((new Htmlizer(node.children, this.cfg)).toString)
                                 });
                                 ret = 'continue';
                             }
@@ -454,10 +458,6 @@
                                     }
                                     node.appendChild(tempFrag);
                                 }
-                            }
-
-                            if (this.noConflict && binding === 'data-bind') {
-                                node.setAttribute('data-bind', value);
                             }*/
                         }, this);
                     }
@@ -492,7 +492,7 @@
                             }, data, context);
                         }, {
                             expr: match[2],
-                            ifBody: funcToString((new Htmlizer(blockNodes)).toString)
+                            ifBody: funcToString((new Htmlizer(blockNodes, this.cfg)).toString)
                         });
 
                         ignoreTill = block.end;
@@ -507,7 +507,7 @@
                             }, context, data);
                         }, {
                             value: match[2].trim(),
-                            foreachBody: funcToString((new Htmlizer(blockNodes)).toString)
+                            foreachBody: funcToString((new Htmlizer(blockNodes, this.cfg)).toString)
                         });
 
                         ignoreTill = block.end;
@@ -521,7 +521,7 @@
                             }, context, data);
                         }, {
                             expr: match[2],
-                            withBody: funcToString((new Htmlizer(blockNodes)).toString)
+                            withBody: funcToString((new Htmlizer(blockNodes, this.cfg)).toString)
                         });
 
                         ignoreTill = block.end;

@@ -260,7 +260,6 @@ describe('run container-less "with" binding test', function () {
     });
 });
 
-/*
 describe('run no conflict test', function () {
     var html = fetch('test/noconflict-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
@@ -319,7 +318,7 @@ describe('run no conflict data-bind binding test', function () {
         assert.equal('{text:btnText}', df.firstChild.getAttribute('data-bind'));
     });
 });
-
+/*
 describe('run no conflict sub-template test', function () {
     var html = fetch('test/noconflict-subtemplate-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
