@@ -71,7 +71,10 @@
                 block;
 
             //Before evaluating, determine the nesting structure for containerless statements.
-            traverse(this.frag, function (node) {
+            traverse(this.frag, this.frag, function (node, isOpenTag) {
+                if (!isOpenTag) {
+                    return;
+                }
                 if (node.type === 'comment') {
                     var stmt = node.data.trim(), match;
 
@@ -141,7 +144,10 @@
             });
 
             //Convert vdom into a resuable function
-            traverse(this.frag, function (node) {
+            traverse(this.frag, this.frag, function (node, isOpenTag) {
+                if (!isOpenTag) {
+                    return;
+                }
                 var val, match, tempFrag, inner;
                 if (node.type === 'text') {
                     funcBody += CODE(function (text, output) {
@@ -713,36 +719,72 @@
 
     /**
      * VDOM traversal.
-     * WARNING: Never remove or add nodes to tree while traversing. Immutability is assumed.
-     * Callback can return one of the following strings:
-     *  'continue' to skip traversing curent node's child nodes
-     *  'break' to skip traversing current node's next siblings
-     *  'return' to stop traversal and return the last node traversed.
+     * Given a VDOM node, this method finds the next tag/node that would appear in the dom.
+     * WARNING: Do not remove or add nodes while traversing, because it could cause the traversal logic to go crazy.
+     *
+     * @param node Could be a any node (element node or text node)
+     * @param ancestor Node An ancestorial element that can be used to limit the search.
+     * The search algorithm, while traversing the ancestorial heirarcy, will not go past/above this element.
+     *
+     * @param {function} callback A callback called on each element traversed.
+     *
+     * callback gets following parameters:
+     * node: Current node being traversed.
+     * isOpenTag: boolean. On true, node would be the next open tag/node that one would find when going
+     * linearly downwards through the DOM. Filtering with isOpenTag=true, one would get exactly what native TreeWalker does.
+     * Similarly isOpenTag=false when a close tag is encountered when traversing the DOM.
+     *
+     * callback can return one of the following values (with their meanings):
+     * 'return': Halts and returns node.
+     * 'continue': Skips further traversal of current node (i.e won't traverse it's child nodes).
+     * 'break': Skips all sibling elements of current node and goes to it's parent node.
+     *
+     * relation: The relation compared to the previously traversed node.
+     * @param {Object} [scope] Value of 'this' keyword within callback
+     * @private
      */
-    function traverse(o, callback, context, extra) {
-        if (Array.isArray(o)) { //handle document fragment
-            o = {
+    function traverse(node, ancestor, callback, scope) {
+         if (Array.isArray(node)) { //handle document fragment
+            var arr = node;
+            node = {
                 type: 'fragment',
-                children: o
+                children: arr
             };
+            if (arr === ancestor) {
+                ancestor = node;
+            }
         }
-        var ret = callback.call(context, o);
-        if (!ret && o.children) {
-            o.children.some(function (item, index) {
-                var ret2 = traverse(item, callback, context, {parent: o, index: index});
-                if (typeof ret2 !== 'string' && ret2 !== undefined) {
-                    ret = ret2;
-                    ret2 = 'return';
+
+        //if node = ancestor, we still can traverse it's child nodes
+        if (!node) {
+            return null;
+        }
+        var isOpenTag = true, ret = null;
+        do {
+            if (isOpenTag && node.children && node.children[0] && !ret) {
+                node = node.children[0];
+                //isOpenTag = true;
+                ret = callback.call(scope, node, true, 'firstChild');
+            } else if (node.next && node !== ancestor && ret !== 'break') {
+                if (isOpenTag) {
+                    callback.call(scope, node, false, 'current');
                 }
-                return (ret2 === 'break' || ret2 === 'return');
-            });
-        }
-        if (ret === 'return') {
-            ret = o;
-        }
-        if (ret !== 'continue') {
-            return ret;
-        }
+                node = node.next;
+                isOpenTag = true;
+                ret = callback.call(scope, node, true, 'nextSibling');
+            } else if (node.parent && node !== ancestor) {
+                if (isOpenTag) {
+                    callback.call(scope, node, false, 'current');
+                }
+                //Traverse up the dom till you find an element with nextSibling
+                node = node.parent;
+                isOpenTag = false;
+                ret = callback.call(scope, node, false, 'parentNode');
+            } else {
+                node = null;
+            }
+        } while (node && ret !== 'return');
+        return node || null;
     }
 
     //Convert function body to string.
