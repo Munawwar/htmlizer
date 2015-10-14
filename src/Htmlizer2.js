@@ -620,8 +620,8 @@
                     var tag = node.name;
                     html += '<' + tag;
                     Object.keys(node.attribs).forEach(function (attr) {
-                        html += ' ' + attr + '=' + this.generateAttribute(node.attribs[attr.value]);
-                    });
+                        html += ' ' + attr + '=' + this.generateAttribute(node.attribs[attr]);
+                    }, this);
                     html += (voidTags[tag] ? '/>' : '>');
                     if (!voidTags[tag]) {
                         html += this.vdomToHtml(node.children);
@@ -636,7 +636,7 @@
                     //No need to escape text inside script or style tag.
                     html += '<' + node.name;
                     Object.keys(node.attribs).forEach(function (attr) {
-                        html += ' ' + attr + '=' + this.generateAttribute(node.attribs[attr.value]);
+                        html += ' ' + attr + '=' + this.generateAttribute(node.attribs[attr]);
                     }, this);
                     html += '>' + ((node.children[0] || {}).data || '') + '</' + node.name + '>';
                 } else if (node.type === 'directive') {
