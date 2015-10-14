@@ -219,6 +219,7 @@ describe('run binding context test', function () {
         }
     });
 });
+*/
 
 describe('run "ifnot" binding test', function () {
     var html = fetch('test/ifnot-tpl.html'),
@@ -231,7 +232,6 @@ describe('run "ifnot" binding test', function () {
         assert.equal(1, countElements(df));
     });
 });
-*/
 
 describe('run inline "with" binding test', function () {
     var html = fetch('test/with-inline-tpl.html'),

@@ -371,10 +371,10 @@
                         //Now convert the descendant bindings
                         this.forEachObjectLiteral(bindOpts, function (binding, value) {
                             //Convert ifnot: (...) to if: !(...)
-                            /*if (binding === 'ifnot') {
+                            if (binding === 'ifnot') {
                                 value = '!(' + value + ')';
+                                binding = 'if';
                             }
-                            */
 
                             //First evaluate if
                             if (binding === 'if') {
@@ -477,9 +477,9 @@
                     }
 
                     //Convert ifnot: (...) to if: !(...)
-                    /*if ((match = stmt.match(syntaxRegex.ifnot))) {
+                    if ((match = stmt.match(syntaxRegex.ifnot))) {
                         stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
-                    }*/
+                    }
 
                     //Process if statement
                     if ((match = stmt.match(syntaxRegex['if']))) {
