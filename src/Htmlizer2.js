@@ -146,8 +146,15 @@
             //Convert vdom into a resuable function
             traverse(this.frag, this.frag, function (node, isOpenTag) {
                 if (!isOpenTag) {
+                    if (node.type === 'tag') {
+                        //Generate closing tag
+                        funcBody += CODE(function (output, tag) {
+                            output += '</' + $$(tag) + '>';
+                        }, {tag: node.name});
+                    }
                     return;
                 }
+
                 var val, match, tempFrag, inner;
                 if (node.type === 'text') {
                     //TODO: Write test for text htmlEncode
@@ -155,7 +162,6 @@
                         output += this.htmlEncode($$(text));
                     }, {text: node.data});
                 } else if (node.type === 'tag') {
-
                     //Generate open tag (without attributes and >)
                     funcBody += CODE(function (output, tag) {
                         output += '<' + $$(tag);
@@ -339,18 +345,16 @@
                         });
                     }, this);
 
-                    if (voidTags[node.name]) {
-                        //Close open tag
-                        funcBody += CODE(function (output) {
-                            output += '/>';
-                        });
-                    //For non-void tags.
-                    } else {
-                        //Close open tag
-                        funcBody += CODE(function (output) {
-                            output += '>';
-                        });
+                    //Close open tag
+                    funcBody += CODE(function (output) {
+                        output += $$(close);
+                    }, {
+                        close: voidTags[node.name] ? ' />' : '>'
+                    });
 
+
+                    //For non-void tags.
+                    if (!voidTags[node.name]) {
                         //Now convert the descendant bindings
                         this.forEachObjectLiteral(bindOpts, function (binding, value) {
                             //Convert ifnot: (...) to if: !(...)
@@ -446,11 +450,6 @@
                                 node.setAttribute('data-bind', value);
                             }*/
                         }, this);
-
-                        //Generate closing tag
-                        funcBody += CODE(function (output, tag) {
-                            output += '</' + $$(tag) + '>';
-                        }, {tag: node.name});
                     }
 
                     if (ret) {
