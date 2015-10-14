@@ -251,7 +251,6 @@ describe('run inline "with" binding test', function () {
     });
 });
 
-/*
 describe('run container-less "with" binding test', function () {
     var html = fetch('test/with-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
@@ -272,6 +271,7 @@ describe('run container-less "with" binding test', function () {
     });
 });
 
+/*
 describe('run no conflict test', function () {
     var html = fetch('test/noconflict-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({

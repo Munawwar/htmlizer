@@ -485,7 +485,7 @@
                     if ((match = stmt.match(syntaxRegex['if']))) {
 
                         block = this.findBlockFromStartNode(blocks, node);
-                        var blockNodes = this.getImmediateNodes(this.frag, node, block.end);
+                        var blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
                         funcBody += CODE(function (expr, ifBody, data, context, output, val) {
                             output += this.inlineBindings["if"].call(this, $$(expr), function () {
@@ -512,20 +512,22 @@
                         });
 
                         ignoreTill = block.end;
-                    }/* else if ((match = stmt.match(syntaxRegex['with']))) {
-                        val = saferEval(match[2], context, data, node);
+                    } else if ((match = stmt.match(syntaxRegex['with']))) {
 
                         block = this.findBlockFromStartNode(blocks, node);
-                        blockNodes = this.getImmediateNodes(frag, block.start, block.end);
-                        tempFrag = this.moveToNewFragment(blockNodes);
+                        blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
-                        toRemove.push(node);
-                        toRemove.push(block.end);
+                        funcBody += CODE(function (expr, withBody, data, context, val, output) {
+                            output += this.inlineBindings.with.call(this, $$(expr), function (data, context) {
+                                $_(withBody);
+                            }, context, data);
+                        }, {
+                            expr: match[2],
+                            withBody: funcToString((new Htmlizer(blockNodes)).toString)
+                        });
 
-                        if (tempFrag.firstChild && val !== null && val !== undefined) {
-                            node.parentNode.insertBefore(this.executeInNewContext(tempFrag, context, val), node);
-                        }
-                    } else if ((match = stmt.match(syntaxRegex.text))) {
+                        ignoreTill = block.end;
+                    }/* else if ((match = stmt.match(syntaxRegex.text))) {
                         val = saferEval(match[2], context, data, node);
 
                         block = this.findBlockFromStartNode(blocks, node);
@@ -620,7 +622,10 @@
             "with": function (expr, withBody, context, data) {
                 var val = this.exprEvaluator(expr, context, data),
                     newContext = this.getNewContext(context, val);
-                return withBody.call(this, val, newContext);
+                if (val !== null && val !== undefined) {
+                    return withBody.call(this, val, newContext);
+                }
+                return '';
             },
 
             "if": function (expr, ifBody, context, data) {
