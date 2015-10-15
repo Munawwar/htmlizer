@@ -196,13 +196,29 @@
                         }
                     }
 
-                    var ret;
+                    var bindings = this.parseObjectLiteral(bindOpts),
+                        attrBinding = {},
+                        attrBindingComplete = false,
+                        ret;
+
+                    if (bindings.attr) {
+                        attrBinding = this.parseObjectLiteral(bindings.attr.slice(1, -1));
+                    }
+
+
                     //First convert all the attribute related bindings.
-                    this.forEachObjectLiteral(bindOpts, function (binding, value) {
+                    /* Iterate in reverse order because in cartain cases (e.g if element has a css binding AND an
+                       attr.class binding) then the last binding to be processed wins with KO.*/
+                    Object.keys(bindings).reverse().forEach(function (binding) {
+                        var value = bindings[binding];
 
                         if (binding === 'css') {
                             var constantClasses = unwrap((node.attribs.class || '').trim().replace(/ /g, ','));
                             delete node.attribs.class;
+                            if (attrBinding.class && attrBindingComplete) {
+                                // Last one to render wins.
+                                return;
+                            }
 
                             if (value[0] === '{') {
                                 var conditionalClasses = {};
@@ -254,6 +270,10 @@
                             var constantStyles = this.parseCSSDeclarations(node.attribs.style || ''),
                                 conditionalStyles = {};
                             delete node.attribs.style;
+                            if (attrBinding.style && attrBindingComplete) {
+                                // Last one to render wins.
+                                return;
+                            }
 
                             this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
                                 prop = this.camelCaseToCSSProp(prop);
@@ -290,8 +310,62 @@
                             });
                         }
 
+                        //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
+
+                        if (binding === 'disable' || binding === 'enable') {
+                            delete node.attribs.disabled;
+                            if (attrBinding.disabled) {
+                                // Last one to render wins.
+                                if (attrBindingComplete) {
+                                    return;
+                                } else {
+                                    delete attrBinding.disabled;
+                                }
+                            }
+
+                            funcBody += CODE(function (expr, data, context, output, val) {
+                                output += this.inlineBindings.disable.call(this, $$(binding), $$(expr), context, data);
+                            }, {
+                                binding: binding,
+                                expr: value
+                            });
+                        }
+
+                        if (binding === 'checked') {
+                            delete node.attribs.checked;
+                            if (attrBinding.checked) {
+                                // Last one to render wins.
+                                if (attrBindingComplete) {
+                                    return;
+                                } else {
+                                    delete attrBinding.checked;
+                                }
+                            }
+
+                            funcBody += CODE(function (expr, data, context, output, val) {
+                                output += this.inlineBindings.checked.call(this, $$(expr), context, data);
+                            }, {expr: value});
+                        }
+
+                        if (binding === 'value') {
+                            delete node.attribs.value;
+                            if (attrBinding.value) {
+                                // Last one to render wins.
+                                if (attrBindingComplete) {
+                                    return;
+                                } else {
+                                    delete attrBinding.value;
+                                }
+                            }
+
+                            funcBody += CODE(function (expr, data, context, output, val) {
+                                output += this.inlineBindings.value.call(this, $$(expr), context, data);
+                            }, {expr: value});
+                        }
+
                         if (binding === 'attr') {
-                            this.forEachObjectLiteral(value.slice(1, -1), function (attr, expr) {
+                            Object.keys(attrBinding).forEach(function (attr) {
+                                var expr = attrBinding[attr];
                                 if (node.attribs[attr]) {
                                     delete node.attribs[attr]; //The attribute will be overridden by binding anyway.
                                 }
@@ -302,38 +376,11 @@
                                     expr: expr
                                 });
                             }, this);
+                            attrBindingComplete = true;
                         }
 
-                        //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
+
                         /*
-                        if (binding === 'disable' || binding === 'enable') {
-                            val = exprEvaluator(value, context, data, node);
-                            var disable = (binding === 'disable' ? val : !val);
-                            if (disable) {
-                                node.setAttribute('disabled', 'disabled');
-                            } else {
-                                node.removeAttribute('disabled');
-                            }
-                        }
-
-                        if (binding === 'checked') {
-                            val = exprEvaluator(value, context, data, node);
-                            if (val) {
-                                node.setAttribute('checked', 'checked');
-                            } else {
-                                node.removeAttribute('checked');
-                            }
-                        }
-
-                        if (binding === 'value') {
-                            val = exprEvaluator(value, context, data, node);
-                            if (val === null || val === undefined) {
-                                node.removeAttribute('value');
-                            } else {
-                                node.setAttribute('value', val);
-                            }
-                        }
-
                         if (binding === 'visible') {
                             val = exprEvaluator(value, context, data, node);
                             if (val) {
@@ -363,7 +410,7 @@
                     }, this);
 
                     //Close open tag
-                    funcBody += CODE(function (output) {
+                    funcBody += CODE(function (close, output) {
                         output += $$(close);
                     }, {
                         close: voidTags[node.name] ? ' />' : '>'
@@ -466,7 +513,7 @@
                         return ret;
                     }
                 } else if (node.type === 'comment') {
-                    var stmt = node.data.trim();
+                    var stmt = node.data.trim(), blockNodes;
 
                     //Ignore all containerless statements beginning with "ko" if noConflict = true.
                     if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
@@ -484,7 +531,7 @@
                     //Process if statement
                     if ((match = stmt.match(syntaxRegex['if']))) {
                         block = this.findBlockFromStartNode(blocks, node);
-                        var blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
+                        blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
                         funcBody += CODE(function (expr, ifBody, data, context, output, val) {
                             output += this.inlineBindings["if"].call(this, $$(expr), function () {
@@ -501,7 +548,7 @@
                         block = this.findBlockFromStartNode(blocks, node);
                         blockNodes = this.getImmediateNodes(this.frag, block.start, block.end);
 
-                        funcBody += CODE(function (foreachBody, data, context, output) {
+                        funcBody += CODE(function (value, foreachBody, data, context, output) {
                             output += this.inlineBindings.foreach.call(this, $$(value), function (data, context) {
                                 $_(foreachBody);
                             }, context, data);
@@ -641,6 +688,32 @@
                     output += this.executeForEach(foreachBody, context, data, val.items, val.as);
                 }
                 return output;
+            },
+
+            disable: function (binding, expr, context, data) {
+                var val = this.exprEvaluator(expr, context, data),
+                    enable = (binding === 'enable' ? val : !val);
+                if (!enable) {
+                    return ' disabled="disabled"';
+                }
+                return '';
+            },
+
+            checked: function (expr, context, data) {
+                var val = this.exprEvaluator(expr, context, data);
+                if (val) {
+                    return ' checked="checked"';
+                }
+                return '';
+            },
+
+            value: function (expr, context, data) {
+                var val = this.exprEvaluator(expr, context, data);
+                if (val === null || val === undefined) {
+                    return '';
+                } else {
+                    return ' value=' + this.generateAttribute(val);
+                }
             }
         },
 
@@ -847,28 +920,6 @@
         exprEvaluator: exprEvaluator
     };
 
-    /*This function is only intended for debugging purposes at the moment*/
-    function simplerVDom(o) {
-        if (Array.isArray(o)) {
-            return o.map(simplerVDom);
-        } else {
-            var n = {};
-            Object.keys(o).forEach(function (k) {
-                n[k] = o[k];
-            }, this);
-            delete n.parent;
-            delete n.next;
-            delete n.prev;
-            if (o.children) {
-                n.children = simplerVDom(o.children);
-                if (n.children.length < 1) {
-                    delete n.children;
-                }
-            }
-            return n;
-        }
-    }
-
     /**
      * VDOM traversal.
      * Given a VDOM node, this method finds the next tag/node that would appear in the dom.
@@ -896,7 +947,7 @@
      * @private
      */
     function traverse(node, ancestor, callback, scope) {
-         if (Array.isArray(node)) { //handle document fragment
+        if (Array.isArray(node)) { //handle document fragment
             var arr = node;
             node = {
                 type: 'fragment',

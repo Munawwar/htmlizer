@@ -260,6 +260,24 @@ describe('run container-less "with" binding test', function () {
     });
 });
 
+describe('run disable,enablemchecked and value binding test', function () {
+    var html = fetch('test/misc-attr-binding-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({}),
+        df = htmlToDocumentFragment(outputHtml);
+    it('first child should have disabled="disabled"', function () {
+        assert.equal('disabled', df.children[0].getAttribute('disabled'));
+    });
+    it('second child should also have disabled="disabled"', function () {
+        assert.equal('disabled', df.children[1].getAttribute('disabled'));
+    });
+    it('third child should have checked="checked"', function () {
+        assert.equal('checked', df.children[2].getAttribute('checked'));
+    });
+    it('fourth child should also have value="Hi"', function () {
+        assert.equal('Hi', df.children[3].getAttribute('value'));
+    });
+});
+
 describe('run no conflict test', function () {
     var html = fetch('test/noconflict-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
