@@ -215,15 +215,9 @@ Template:
 <div data-bind="template: { name: 'person-template', data: buyer }"></div>
 <div data-bind="template: { name: 'person-template', foreach: [buyer] }"></div>
 
-index.html:
-<html>
-    <head>
-        <script type="text/html" id="person-template">
-            <h3 data-bind="text: name"></h3>
-            <p>Credits: <span data-bind="text: credits"></span></p>
-        </script>
-    </head>
-</html>
+subtemplate.html:
+<h3 data-bind="text: name"></h3>
+<p>Credits: <span data-bind="text: credits"></span></p>
 
 Data:
 {
@@ -244,13 +238,16 @@ Output:
 </div>
 ```
 
-To make template work on NodeJS, one must first place all sub-templates in a separate HTMLDocument and
-pass it as parameter to the template being executed.
+To make template work one must add the sub-templates to config as follows.
 
 ```
-  var html = require('fs').readFileSync('index.html'), //load the file with the sub-templates.
-      doc = require('jsdom')(html), //returns HTMLDocument
-      output = (new Htmlizer('<template string>', {document: doc})).toDocumentFragment(dataObject);
+  var subtpl = require('fs').readFileSync('subtemplate.html').toString(), //load the file with the sub-templates.
+      cfg = {
+        templates: {
+          "person-template": subtpl
+        }
+      },
+      output = (new Htmlizer('<template string>', cfg).toString(dataObject);
 ```
 
 #### Binding Contexts
