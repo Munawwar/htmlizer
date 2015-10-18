@@ -197,28 +197,16 @@
                     }
 
                     var bindings = this.parseObjectLiteral(bindOpts),
-                        attrBinding = {},
-                        attrBindingComplete = false,
+                        conditionalAttributes = {}, // attribute that require conditional render
                         ret;
 
-                    if (bindings.attr) {
-                        attrBinding = this.parseObjectLiteral(bindings.attr.slice(1, -1));
-                    }
-
-
-                    //First convert all the attribute related bindings.
-                    /* Iterate in reverse order because in cartain cases (e.g if element has a css binding AND an
-                       attr.class binding) then the last binding to be processed wins with KO.*/
-                    Object.keys(bindings).reverse().forEach(function (binding) {
+                    //First separate attributes that require conditional render from the ones that are constant.
+                    //Also resolve conflicting attribute bindings (e.g. css binding and an attr.class binding).
+                    Object.keys(bindings).forEach(function (binding) {
                         var value = bindings[binding];
 
                         if (binding === 'css') {
                             var constantClasses = unwrap((node.attribs.class || '').trim().replace(/ /g, ','));
-                            delete node.attribs.class;
-                            if (attrBinding.class && attrBindingComplete) {
-                                // Last one to render wins.
-                                return;
-                            }
 
                             if (value[0] === '{') {
                                 var conditionalClasses = {};
@@ -231,53 +219,27 @@
                                     conditionalClasses[className] = expr;
                                 });
 
-                                constantClasses = Object.keys(constantClasses).join(' ');
-                                funcBody += CODE(function (data, context, output) {
-                                    output += ' class="' + $$(constantClasses);
-
-                                    val = $_(conditionalClasses);
-                                    Object.keys(val).forEach(function (className) {
-                                        var expr = val[className];
-                                        if (this.exprEvaluator(expr, context, data)) {
-                                            output += ' ' + className;
-                                        }
-                                    }, this);
-
-                                    output += '"';
-                                }, {
-                                    constantClasses: constantClasses,
-                                    conditionalClasses: JSON.stringify(conditionalClasses)
-                                });
+                                node.attribs.class = Object.keys(constantClasses).join(' ');
+                                conditionalAttributes.class = {
+                                    binding: 'css',
+                                    value: conditionalClasses
+                                };
                             } else {
-                                constantClasses = Object.keys(constantClasses).join(' ');
-                                funcBody += CODE(function (data, context, output, className) {
-                                    output += ' class="' + $$(constantClasses);
-
-                                    className = this.exprEvaluator($$(value), context, data);
-                                    if (className) {
-                                        output += ' ' + className;
-                                    }
-
-                                    output += '"';
-                                }, {
-                                    constantClasses: constantClasses,
+                                node.attribs.class = Object.keys(constantClasses).join(' ');
+                                conditionalAttributes.class = {
+                                    binding: 'css',
                                     value: value
-                                });
+                                };
                             }
                         }
 
                         if (binding === 'style') {
                             var constantStyles = this.parseCSSDeclarations(node.attribs.style || ''),
                                 conditionalStyles = {};
-                            delete node.attribs.style;
-                            if (attrBinding.style && attrBindingComplete) {
-                                // Last one to render wins.
-                                return;
-                            }
 
                             this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
                                 prop = this.camelCaseToCSSProp(prop);
-                                //If CSS property is defined in style attribute and also
+                                //If CSS property is defined in style attribute of markup and also
                                 //as a binding, then remove it from constantStyles.
                                 if (constantStyles[prop]) {
                                     delete constantStyles[prop];
@@ -290,95 +252,52 @@
                             Object.keys(constantStyles).forEach(function (prop) {
                                 styles += prop + ':' + constantStyles[prop].replace(/"/g, '\\"') + '; ';
                             });
-                            constantStyles = styles;
+                            //Overwrite node.attribs.style. This contains all styles that don't need conditional render.
+                            node.attribs.style = styles;
 
-                            funcBody += CODE(function (data, context, output) {
-                                output += ' style="' + $$(constantStyles);
+                            conditionalAttributes.style = {
+                                binding: binding,
+                                value: conditionalStyles
+                            };
+                        }
 
-                                conditionalStyles = $_(conditionalStyles);
-                                Object.keys(conditionalStyles).forEach(function (prop) {
-                                    val = this.exprEvaluator(conditionalStyles[prop], context, data) || null;
-                                    if (val || typeof val === 'string' || typeof val === 'number') {
-                                        output += prop + ':' + val.replace(/"/g, '\\"') + '; ';
-                                    }
-                                }, this);
-
-                                output += '"';
-                            }, {
-                                constantStyles: constantStyles,
-                                conditionalStyles: JSON.stringify(conditionalStyles)
-                            });
+                        if (binding === 'attr') {
+                            this.forEachObjectLiteral(value.slice(1, -1), function (attr, expr) {
+                                if (node.attribs[attr]) {
+                                    delete node.attribs[attr]; //The attribute will be overridden by binding anyway.
+                                }
+                                conditionalAttributes[attr] = {
+                                    binding: binding,
+                                    expr: expr
+                                };
+                            }, this);
                         }
 
                         //Some of the following aren't treated as attributes by Knockout, but this is here to keep compatibility with Knockout.
 
                         if (binding === 'disable' || binding === 'enable') {
                             delete node.attribs.disabled;
-                            if (attrBinding.disabled) {
-                                // Last one to render wins.
-                                if (attrBindingComplete) {
-                                    return;
-                                } else {
-                                    delete attrBinding.disabled;
-                                }
-                            }
-
-                            funcBody += CODE(function (expr, data, context, output, val) {
-                                output += this.inlineBindings.disable.call(this, $$(binding), $$(expr), context, data);
-                            }, {
+                            conditionalAttributes.disabled = {
                                 binding: binding,
                                 expr: value
-                            });
+                            };
                         }
 
                         if (binding === 'checked') {
                             delete node.attribs.checked;
-                            if (attrBinding.checked) {
-                                // Last one to render wins.
-                                if (attrBindingComplete) {
-                                    return;
-                                } else {
-                                    delete attrBinding.checked;
-                                }
-                            }
-
-                            funcBody += CODE(function (expr, data, context, output, val) {
-                                output += this.inlineBindings.checked.call(this, $$(expr), context, data);
-                            }, {expr: value});
+                            conditionalAttributes.checked = {
+                                binding: binding,
+                                expr: value
+                            };
                         }
 
                         if (binding === 'value') {
                             delete node.attribs.value;
-                            if (attrBinding.value) {
-                                // Last one to render wins.
-                                if (attrBindingComplete) {
-                                    return;
-                                } else {
-                                    delete attrBinding.value;
-                                }
-                            }
-
-                            funcBody += CODE(function (expr, data, context, output, val) {
-                                output += this.inlineBindings.value.call(this, $$(expr), context, data);
-                            }, {expr: value});
+                            conditionalAttributes.checked = {
+                                binding: binding,
+                                expr: value
+                            };
                         }
-
-                        if (binding === 'attr') {
-                            Object.keys(attrBinding).forEach(function (attr) {
-                                var expr = attrBinding[attr];
-                                if (node.attribs[attr]) {
-                                    delete node.attribs[attr]; //The attribute will be overridden by binding anyway.
-                                }
-                                funcBody += CODE(function (data, context, output) {
-                                    output += this.inlineBindings.attr.call(this, $$(attr), $$(expr), context, data);
-                                }, {
-                                    attr: this.htmlEncode(attr),
-                                    expr: expr
-                                });
-                            }, this);
-                            attrBindingComplete = true;
-                        }
-
 
                         /*
                         if (binding === 'visible') {
@@ -398,15 +317,96 @@
                         }
                     }, this);
 
-                    //Add the attributes that were part of element's markup.
-                    Object.keys(node.attribs).forEach(function (attr) {
-                        var value = node.attribs[attr];
-                        funcBody += CODE(function (output) {
-                            output += ' ' + $$(attr) + '=' + $$(value);
-                        }, {
-                            attr: this.htmlEncode(attr),
-                            value: this.generateAttribute(value)
-                        });
+                    //Generate attributes
+                    Object.keys(node.attribs).concat(Object.keys(conditionalAttributes)).forEach(function (attr) {
+                        if (typeof node.attribs[attr] === 'string') {
+                            var value = this.generateAttribute(node.attribs[attr]);
+                            if (conditionalAttributes[attr]) {
+                                value = value.slice(0, -1); //Remove quote
+                            }
+
+                            //Add the attributes that were part of element's markup.
+                            funcBody += CODE(function (output) {
+                                output += ' ' + $$(attr) + '=' + $$(value);
+                            }, {
+                                attr: this.htmlEncode(attr),
+                                value: value
+                            });
+                        }
+
+                        //Generate conditional attributes
+                        var bindingInfo = conditionalAttributes[attr];
+                        if (bindingInfo) {
+                            var binding = bindingInfo.binding;
+                            if (binding === 'css') {
+                                var conditionalClasses = bindingInfo.value;
+                                if (typeof conditionalClasses === 'object') {
+                                    funcBody += CODE(function (data, context, output) {
+                                        val = $_(conditionalClasses);
+                                        Object.keys(val).forEach(function (className) {
+                                            var expr = val[className];
+                                            if (this.exprEvaluator(expr, context, data)) {
+                                                output += ' ' + className;
+                                            }
+                                        }, this);
+
+                                        output += '"';
+                                    }, {
+                                        conditionalClasses: JSON.stringify(conditionalClasses)
+                                    });
+                                } else {
+                                    funcBody += CODE(function (constantClasses, data, context, output, className) {
+                                        className = this.exprEvaluator($$(value), context, data);
+
+                                        //Check if className already exists
+                                        if (className && (' ' + $$(constantClasses) + ' ').indexOf(' ' + className + ' ') < 0) {
+                                            output += ' ' + className;
+                                        }
+
+                                        output += '"';
+                                    }, {
+                                        constantClasses: node.attribs[attr],
+                                        value: bindingInfo.value
+                                    });
+                                }
+                            } else if (binding === 'style') {
+                                funcBody += CODE(function (conditionalStyles, data, context, output) {
+                                    conditionalStyles = $_(conditionalStyles);
+                                    Object.keys(conditionalStyles).forEach(function (prop) {
+                                        val = this.exprEvaluator(conditionalStyles[prop], context, data) || null;
+                                        if (val || typeof val === 'string' || typeof val === 'number') {
+                                            output += prop + ':' + val.replace(/"/g, '\\"') + '; ';
+                                        }
+                                    }, this);
+
+                                    output += '"';
+                                }, {
+                                    conditionalStyles: JSON.stringify(bindingInfo.value)
+                                });
+                            } else if (binding === 'disable' || binding === 'enable') {
+                                funcBody += CODE(function (expr, data, context, output, val) {
+                                    output += this.inlineBindings.disable.call(this, $$(binding), $$(expr), context, data);
+                                }, {
+                                    binding: binding,
+                                    expr: bindingInfo.expr
+                                });
+                            } else if (binding === 'checked') {
+                                funcBody += CODE(function (expr, data, context, output, val) {
+                                    output += this.inlineBindings.checked.call(this, $$(expr), context, data);
+                                }, {expr: bindingInfo.expr});
+                            } else if (binding === 'value') {
+                                funcBody += CODE(function (expr, data, context, output, val) {
+                                    output += this.inlineBindings.value.call(this, $$(expr), context, data);
+                                }, {expr: bindingInfo.expr});
+                            } else if (binding === 'attr') {
+                                funcBody += CODE(function (data, context, output) {
+                                    output += this.inlineBindings.attr.call(this, $$(attr), $$(expr), context, data);
+                                }, {
+                                    attr: this.htmlEncode(attr),
+                                    expr: bindingInfo.expr
+                                });
+                            }
+                        }
                     }, this);
 
                     //Close open tag
