@@ -2,7 +2,7 @@
   "name": "htmlizer",
   "author": "munawwar",
   "description": "HTML Templates",
-  "version": "0.8.0",
+  "version": "2.0.0",
   "main": "src/Htmlizer.js",
   "dependencies": {
     "cssom": "0.3.0",
@@ -10,7 +10,7 @@
     "htmlparser2": "3.8.3"
   },
   "devDependencies": {
-    "jsdom": "1.x",
+    "jsdom": "*",
     "mocha": "1.18.2"
   },
   "directories": {
