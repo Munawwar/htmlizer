@@ -2,9 +2,11 @@
 
 var assert = require("assert"),
     fs = require('fs'),
-    Htmlizer = require('../src/Htmlizer.js'),
+    Htmlizer = require('../src/Htmlizer2.js'),
     jsdom = require('jsdom').jsdom,
-    jqueryFactory = require('../src/jquery.js');
+    document = jsdom(),
+    window = document.parentWindow,
+    jquery = require('../src/jquery.js')(window);
 
 describe('run text and attr binding test', function () {
     var html = fetch('test/text-and-attr-binding-tpl.html'),
@@ -69,7 +71,8 @@ describe('run container-less html binding test', function () {
 
 describe('run inline "if" statement test', function () {
     var html = fetch('test/if-inline-tpl.html'),
-        outputHtml = (new Htmlizer(html)).toString({
+        tpl = new Htmlizer(html),
+        outputHtml = tpl.toString({
             btnText: 'Howdy!',
             cls: 'btn btn-default' //bootstrap 3 button css class
         }),
@@ -181,27 +184,22 @@ describe('run binding context test', function () {
     traverse(df, df, function (node, isOpenTag) {
         if (isOpenTag && node.nodeType === 1 && node.nodeName === 'SPAN') {
             count += 1;
-            if (count === 1) {
-                it('span 1 text should be "SPAN"', function () {
-                    assert.equal('SPAN', node.textContent);
-                });
-            }
-            if (count >= 2 && count <= 3) {
+            if (count >= 1 && count <= 2) {
                 it('span ' + count + ' text should be "item1"', function () {
                     assert.equal('item1', node.textContent);
                 });
             }
-            if (count === 4) {
+            if (count === 3) {
                 it('span 4 text should be "0"', function () {
                     assert.equal('0', node.textContent);
                 });
             }
-            if (count >= 5 && count <= 6) {
+            if (count >= 4 && count <= 5) {
                 it('span ' + count + ' text should be "subitem1"', function () {
                     assert.equal('subitem1', node.textContent);
                 });
             }
-            if (count === 7) {
+            if (count === 6) {
                 it('span 6 text should be "true"', function () {
                     assert.equal('true', node.textContent);
                 });
@@ -259,6 +257,27 @@ describe('run container-less "with" binding test', function () {
     });
     it('it should have 4 SPANs with "10" as text content', function () {
         assert.equal(4, count);
+    });
+});
+
+describe('run disable,enablemchecked and value binding test', function () {
+    var html = fetch('test/misc-attr-binding-tpl.html'),
+        outputHtml = (new Htmlizer(html)).toString({}),
+        df = htmlToDocumentFragment(outputHtml);
+    it('first child should have disabled="disabled"', function () {
+        assert.equal('disabled', df.children[0].getAttribute('disabled'));
+    });
+    it('second child should also have disabled="disabled"', function () {
+        assert.equal('disabled', df.children[1].getAttribute('disabled'));
+    });
+    it('third child should have checked="checked"', function () {
+        assert.equal('checked', df.children[2].getAttribute('checked'));
+    });
+    it('fourth child should also have value="Hi"', function () {
+        assert.equal('Hi', df.children[3].getAttribute('value'));
+    });
+    it('fifth child should also have display none', function () {
+        assert.equal('none', df.children[4].style.display);
     });
 });
 
@@ -320,7 +339,6 @@ describe('run no conflict data-bind binding test', function () {
         assert.equal('{text:btnText}', df.firstChild.getAttribute('data-bind'));
     });
 });
-
 describe('run no conflict sub-template test', function () {
     var html = fetch('test/noconflict-subtemplate-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
@@ -344,9 +362,12 @@ describe('run no conflict sub-template test', function () {
 });
 
 describe('run template binding test', function () {
-    var html = fetch('test/template.html'),
-        doc = jsdom(fetch('test/files/docroot.html'));
-    var outputHtml = (new Htmlizer(html, {document: doc})).toString({
+    var html = fetch('test/template-tpl.html'),
+        tpl = fetch('test/files/person-template.html'),
+        cfg = {
+            templates: {"person-template": tpl}
+        };
+    var outputHtml = (new Htmlizer(html, cfg)).toString({
             buyer: {
                 name: 'Franklin',
                 credits: 250
@@ -354,14 +375,14 @@ describe('run template binding test', function () {
         }),
         df = htmlToDocumentFragment(outputHtml);
     it('div should have h3 tag', function () {
-        assert.equal('H3', df.firstChild.childNodes[1].tagName);
+        assert.equal('H3', df.firstChild.children[0].tagName);
     });
     it('h3 should have text as "Franklin"', function () {
-        assert.equal('Franklin', df.firstChild.childNodes[1].firstChild.nodeValue);
+        assert.equal('Franklin', df.firstChild.children[0].firstChild.nodeValue);
     });
     it('foreach test: second div should have h3 with text as "Franklin"', function () {
-        assert.equal('H3', df.childNodes[2].childNodes[1].tagName);
-        assert.equal('Franklin', df.childNodes[2].childNodes[1].firstChild.nodeValue);
+        assert.equal('H3', df.children[1].children[0].tagName);
+        assert.equal('Franklin', df.children[1].children[0].firstChild.nodeValue);
     });
 });
 
@@ -371,10 +392,7 @@ function fetch(pathToTextFile) {
 }
 
 function htmlToDocumentFragment(html) {
-    var document = jsdom(),
-        window = document.parentWindow,
-        jquery = jqueryFactory(window),
-        df = document.createDocumentFragment();
+    var df = document.createDocumentFragment();
     jquery.parseHTML(html).forEach(function (node) {
         df.appendChild(node);
     }, this);
