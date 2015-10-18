@@ -276,6 +276,9 @@ describe('run disable,enablemchecked and value binding test', function () {
     it('fourth child should also have value="Hi"', function () {
         assert.equal('Hi', df.children[3].getAttribute('value'));
     });
+    it('fifth child should also have display none', function () {
+        assert.equal('none', df.children[4].style.display);
+    });
 });
 
 describe('run no conflict test', function () {

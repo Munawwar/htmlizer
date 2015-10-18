@@ -198,6 +198,7 @@
 
                     var bindings = this.parseObjectLiteral(bindOpts),
                         conditionalAttributes = {}, // attribute that require conditional render
+                        constantStyles,
                         ret;
 
                     //First separate attributes that require conditional render from the ones that are constant.
@@ -234,8 +235,8 @@
                         }
 
                         if (binding === 'style') {
-                            var constantStyles = this.parseCSSDeclarations(node.attribs.style || ''),
-                                conditionalStyles = {};
+                            constantStyles = this.parseCSSDeclarations(node.attribs.style || '');
+                            var conditionalStyles = {};
 
                             this.forEachObjectLiteral(value.slice(1, -1), function (prop, value) {
                                 prop = this.camelCaseToCSSProp(prop);
@@ -247,13 +248,8 @@
                                 conditionalStyles[prop] = value;
                             }, this);
 
-                            //Convert constantStyles to semi-colon separated CSS declaration string.
-                            var styles = '';
-                            Object.keys(constantStyles).forEach(function (prop) {
-                                styles += prop + ':' + constantStyles[prop].replace(/"/g, '\\"') + '; ';
-                            });
                             //Overwrite node.attribs.style. This contains all styles that don't need conditional render.
-                            node.attribs.style = styles;
+                            node.attribs.style = this.toCSSDeclarations(constantStyles);
 
                             conditionalAttributes.style = {
                                 binding: binding,
@@ -299,18 +295,18 @@
                             };
                         }
 
-                        /*
                         if (binding === 'visible') {
-                            val = exprEvaluator(value, context, data, node);
-                            if (val) {
-                                if (node.style.display === 'none') {
-                                    node.style.removeProperty('display');
-                                }
-                            } else {
-                                node.style.setProperty('display', 'none');
-                            }
+                            constantStyles = this.parseCSSDeclarations(node.attribs.style || '');
+                            delete constantStyles.display; //It will be overwritten
+                            node.attribs.style = this.toCSSDeclarations(constantStyles);
+
+                            conditionalAttributes.style = conditionalAttributes.style || {
+                                binding: 'style',
+                                value: {}
+                            };
+
+                            conditionalAttributes.style.value.display = '(' + value + ') ? null : "none"';
                         }
-                        */
 
                         if (this.noConflict && binding === 'data-bind') {
                             node.attribs['data-bind'] = value;
@@ -318,7 +314,11 @@
                     }, this);
 
                     //Generate attributes
+                    var attributes = {};
                     Object.keys(node.attribs).concat(Object.keys(conditionalAttributes)).forEach(function (attr) {
+                        attributes[attr] = true;
+                    });
+                    Object.keys(attributes).forEach(function (attr) {
                         if (typeof node.attribs[attr] === 'string') {
                             var value = this.generateAttribute(node.attribs[attr]);
                             if (conditionalAttributes[attr]) {
@@ -905,6 +905,16 @@
                 var property = stylesObj[i];
                 styles[property] = stylesObj[property];
             }
+            return styles;
+        },
+        /**
+         * Convert style object (with key as the property and value as the css value) to semi-colon separated CSS declaration string.
+         */
+        toCSSDeclarations: function (stylesObj) {
+            var styles = '';
+            Object.keys(stylesObj).forEach(function (prop) {
+                styles += prop + ':' + stylesObj[prop].replace(/"/g, '\\"') + '; ';
+            });
             return styles;
         },
 
