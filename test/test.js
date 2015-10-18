@@ -336,7 +336,6 @@ describe('run no conflict data-bind binding test', function () {
         assert.equal('{text:btnText}', df.firstChild.getAttribute('data-bind'));
     });
 });
-/*
 describe('run no conflict sub-template test', function () {
     var html = fetch('test/noconflict-subtemplate-tpl.html'),
         outputHtml = (new Htmlizer(html, {noConflict: true})).toString({
@@ -360,9 +359,12 @@ describe('run no conflict sub-template test', function () {
 });
 
 describe('run template binding test', function () {
-    var html = fetch('test/template.html'),
-        doc = jsdom(fetch('test/files/docroot.html'));
-    var outputHtml = (new Htmlizer(html, {document: doc})).toString({
+    var html = fetch('test/template-tpl.html'),
+        tpl = fetch('test/files/person-template.html'),
+        cfg = {
+            templates: {"person-template": tpl}
+        };
+    var outputHtml = (new Htmlizer(html, cfg)).toString({
             buyer: {
                 name: 'Franklin',
                 credits: 250
@@ -370,17 +372,16 @@ describe('run template binding test', function () {
         }),
         df = htmlToDocumentFragment(outputHtml);
     it('div should have h3 tag', function () {
-        assert.equal('H3', df.firstChild.childNodes[1].tagName);
+        assert.equal('H3', df.firstChild.children[0].tagName);
     });
     it('h3 should have text as "Franklin"', function () {
-        assert.equal('Franklin', df.firstChild.childNodes[1].firstChild.nodeValue);
+        assert.equal('Franklin', df.firstChild.children[0].firstChild.nodeValue);
     });
     it('foreach test: second div should have h3 with text as "Franklin"', function () {
-        assert.equal('H3', df.childNodes[2].childNodes[1].tagName);
-        assert.equal('Franklin', df.childNodes[2].childNodes[1].firstChild.nodeValue);
+        assert.equal('H3', df.children[1].children[0].tagName);
+        assert.equal('Franklin', df.children[1].children[0].firstChild.nodeValue);
     });
 });
-*/
 
 /*Utility functions*/
 function fetch(pathToTextFile) {

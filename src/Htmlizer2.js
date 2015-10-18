@@ -399,7 +399,7 @@
                                     output += this.inlineBindings.value.call(this, $$(expr), context, data);
                                 }, {expr: bindingInfo.expr});
                             } else if (binding === 'attr') {
-                                funcBody += CODE(function (data, context, output) {
+                                funcBody += CODE(function (data, context, output, expr) {
                                     output += this.inlineBindings.attr.call(this, $$(attr), $$(expr), context, data);
                                 }, {
                                     attr: this.htmlEncode(attr),
@@ -453,7 +453,7 @@
                             }
 
                             if (binding === 'with') {
-                                funcBody += CODE(function (expr, withBody, data, context, val, output) {
+                                funcBody += CODE(function (expr, withBody, data, context, output) {
                                     output += this.inlineBindings.with.call(this, $$(expr), function (data, context) {
                                         $_(withBody);
                                     }, context, data);
@@ -472,40 +472,30 @@
                             }
 
                             if (binding === 'html') {
-                                funcBody += CODE(function (expr, data, context, val, output) {
+                                funcBody += CODE(function (expr, data, context, output) {
                                     output += this.inlineBindings.html.call(this, $$(expr), context, data);
                                 }, {expr: value});
                                 ret = 'continue';
                             }
 
-                            /*
                             if (binding === 'template') {
-                                $(node).empty();
-                                inner = this.parseObjectLiteral(value);
-                                val = {
-                                    name: inner.name.slice(1, -1),
-                                    data: exprEvaluator(inner.data, context, data, node),
-                                    if: inner['if'] ? exprEvaluator(inner['if'], context, data, node) : true,
-                                    foreach: exprEvaluator(inner.foreach, context, data, node),
-                                    as: (inner.as || '').slice(1, -1) //strip string quote
-                                };
-
-                                var doc = this.document || document,
-                                    tpl = doc.querySelector('script[id="' + val.name + '"]');
+                                val = this.parseObjectLiteral(value);
+                                val.name = val.name.slice(1, -1);
+                                var tpl = (this.cfg.templates || {})[val.name];
                                 if (!tpl) {
                                     throw new Error("Template named '" + val.name + "' does not exist.");
                                 }
-                                tpl = this.moveToNewFragment(this.parseHTML(tpl.textContent));
 
-                                if (val['if'] && tpl.firstChild) {
-                                    if (val.data || !(val.foreach instanceof Array)) {
-                                        tempFrag = this.executeInNewContext(tpl, context, val.data || data);
-                                    } else {
-                                        tempFrag = this.executeForEach(tpl, context, data, val.foreach, val.as);
-                                    }
-                                    node.appendChild(tempFrag);
-                                }
-                            }*/
+                                funcBody += CODE(function (data, tpl, context, output) {
+                                    output += this.inlineBindings.template.call(this, $_(value), function (data, context) {
+                                        $_(tpl);
+                                    }, context, data);
+                                }, {
+                                    tpl: funcToString((new Htmlizer(tpl, this.cfg)).toString),
+                                    value: JSON.stringify(val)
+                                });
+                                ret = 'continue';
+                            }
                         }, this);
                     }
 
@@ -655,10 +645,9 @@
             },
 
             "with": function (expr, withBody, context, data) {
-                var val = this.exprEvaluator(expr, context, data),
-                    newContext = this.getNewContext(context, val);
+                var val = this.exprEvaluator(expr, context, data);
                 if (val !== null && val !== undefined) {
-                    return withBody.call(this, val, newContext);
+                    return withBody.call(this, val, this.getNewContext(context, val));
                 }
                 return '';
             },
@@ -686,6 +675,25 @@
                 var output = '';
                 if (val.items instanceof Array) {
                     output += this.executeForEach(foreachBody, context, data, val.items, val.as);
+                }
+                return output;
+            },
+
+            template: function (value, tpl, context, data) {
+                var val = {
+                    data: this.exprEvaluator(value.data, context, data),
+                    if: value['if'] ? this.exprEvaluator(value['if'], context, data) : true,
+                    foreach: this.exprEvaluator(value.foreach, context, data),
+                    as: (value.as || '').slice(1, -1) //strip string quote
+                };
+
+                var output = '';
+                if (val['if']) {
+                    if (val.data || !(val.foreach instanceof Array)) {
+                        output = tpl.call(this, val.data || data, this.getNewContext(context, val.data || data));
+                    } else {
+                        output = this.executeForEach(tpl, context, data, val.foreach, val.as);
+                    }
                 }
                 return output;
             },
