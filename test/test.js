@@ -27,6 +27,10 @@ describe('run text and attr binding test', function () {
     });
 });
 
+it('should render the end tag when there is a text binding on the top level element', function () {
+    assert.equal(new Htmlizer('<b data-bind="text: name">bogus</b>').toString({ name: 'foo' }), '<b>foo</b>');
+});
+
 describe('run container-less text binding test', function () {
     var html = fetch('test/text-comment-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
