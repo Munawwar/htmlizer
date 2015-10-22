@@ -159,7 +159,7 @@
                 }
 
                 if (!isOpenTag) {
-                    if (node.type === 'tag') {
+                    if (node.type === 'tag' && !voidTags[node.name]) {
                         //Generate closing tag
                         funcBody += CODE(function (output, tag) {
                             output += '</' + $$(tag) + '>';
@@ -413,7 +413,7 @@
                     funcBody += CODE(function (close, output) {
                         output += $$(close);
                     }, {
-                        close: voidTags[node.name] ? ' />' : '>'
+                        close: '>'
                     });
 
 

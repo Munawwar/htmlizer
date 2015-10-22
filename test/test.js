@@ -386,6 +386,14 @@ describe('run template binding test', function () {
     });
 });
 
+describe('with void elements', function () {
+    var html = '<hr><div>foo</div><br>',
+        outputHtml = (new Htmlizer(html)).toString();
+    it('it should serialize without an end tag and the self-closing slash marker', function () {
+        assert.equal(outputHtml, html);
+    });
+});
+
 /*Utility functions*/
 function fetch(pathToTextFile) {
     return fs.readFileSync(pathToTextFile, {encoding: 'utf8'});
