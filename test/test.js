@@ -146,6 +146,29 @@ describe('run container-less "foreach" statement test', function () {
     });
 });
 
+describe('container-less foreach', function () {
+    // This one outputs "Extra end containerless tag found" to the console
+    it('should not render end tags for each ancestor', function () {
+        var html = fetch('test/foreach-containerless.html'),
+            outputHtml = new Htmlizer(html).toString({
+                customValues: [
+                    { name: 'foo' },
+                    { name: 'bar' }
+                ]
+            });
+        assert.equal(
+            outputHtml,
+            '<!DOCTYPE html>\n' +
+            '<html>\n' +
+            '    <head></head>\n' +
+            '    <body>\n' +
+            '        <p><b>foo</b></p><p><b>bar</b></p>\n' +
+            '    </body>\n' +
+            '</html>\n'
+        );
+    });
+});
+
 describe('run css and style binding test', function () {
     var html = fetch('test/css-and-style-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({
