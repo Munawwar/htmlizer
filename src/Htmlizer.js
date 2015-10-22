@@ -411,9 +411,7 @@
 
                     //Close open tag
                     funcBody += CODE(function (close, output) {
-                        output += $$(close);
-                    }, {
-                        close: '>'
+                        output += '>';
                     });
 
 
