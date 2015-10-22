@@ -2,7 +2,7 @@
 
 var assert = require("assert"),
     fs = require('fs'),
-    Htmlizer = require('../src/Htmlizer2.js'),
+    Htmlizer = require('../src/Htmlizer.js'),
     jsdom = require('jsdom').jsdom,
     document = jsdom(),
     window = document.parentWindow,
@@ -25,6 +25,10 @@ describe('run text and attr binding test', function () {
     it('it should also have title = "abc &quot; def"', function () {
         assert.equal('abc " def', df.firstChild.getAttribute('title'));
     });
+});
+
+it('should render the end tag when there is a text binding on the top level element', function () {
+    assert.equal(new Htmlizer('<b data-bind="text: name">bogus</b>').toString({ name: 'foo' }), '<b>foo</b>');
 });
 
 describe('run container-less text binding test', function () {
@@ -139,6 +143,29 @@ describe('run container-less "foreach" statement test', function () {
         df = htmlToDocumentFragment(outputHtml);
     it('it should have 6 HTMLElements', function () {
         assert.equal(6, countElements(df));
+    });
+});
+
+describe('container-less foreach', function () {
+    // This one outputs "Extra end containerless tag found" to the console
+    it('should not render end tags for each ancestor', function () {
+        var html = fetch('test/foreach-containerless.html'),
+            outputHtml = new Htmlizer(html).toString({
+                customValues: [
+                    { name: 'foo' },
+                    { name: 'bar' }
+                ]
+            });
+        assert.equal(
+            outputHtml,
+            '<!DOCTYPE html>\n' +
+            '<html>\n' +
+            '    <head></head>\n' +
+            '    <body>\n' +
+            '        <p><b>foo</b></p><p><b>bar</b></p>\n' +
+            '    </body>\n' +
+            '</html>\n'
+        );
     });
 });
 
@@ -383,6 +410,14 @@ describe('run template binding test', function () {
     it('foreach test: second div should have h3 with text as "Franklin"', function () {
         assert.equal('H3', df.children[1].children[0].tagName);
         assert.equal('Franklin', df.children[1].children[0].firstChild.nodeValue);
+    });
+});
+
+describe('with void elements', function () {
+    var html = '<hr><div>foo</div><br>',
+        outputHtml = (new Htmlizer(html)).toString();
+    it('it should serialize without an end tag and the self-closing slash marker', function () {
+        assert.equal(outputHtml, html);
     });
 });
 
