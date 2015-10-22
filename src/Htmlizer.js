@@ -843,27 +843,28 @@
         },
 
         /**
-         * Makes a shallow copy of nodes, and puts them into an array.
+         * Makes a deep copy of a list of nodes; corrects next,prev & parent references and then puts them into an array.
          *
          * This is to detach nodes from their parent. Nodes are considered immutable, hence copy is needed.
          * i.e. Doing node.parent = null, during a traversal could cause traversal logic to behave unexpectedly.
-         * Hence a shallow copy is made without parent instead.
          */
-        makeNewFragment: function (nodes) {
+        makeNewFragment: function (nodes, parent) {
             var copy = nodes.map(function (node, index) {
                 var clone = {};
-                //Shallow clone
+                //Shallow copy
                 Object.keys(node).forEach(function (prop) {
-                    if (prop !== 'next' && prop !== 'prev' && prop !== 'parent') {
-                        clone[prop] = node[prop];
-                    }
+                    clone[prop] = node[prop];
                 });
                 return clone;
             });
             copy.forEach(function (cur, i) {
                 cur.prev = copy[i - 1];
                 cur.next = copy[i + 1];
-            });
+                cur.parent = parent;
+                if (cur.children) {
+                    cur.children = this.makeNewFragment(cur.children, cur);
+                }
+            }, this);
             return copy;
         },
 
