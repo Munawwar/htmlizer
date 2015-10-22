@@ -414,7 +414,6 @@
                         output += '>';
                     });
 
-
                     //For non-void tags.
                     if (!voidTags[node.name]) {
                         //Now convert the descendant bindings
@@ -983,24 +982,24 @@
             if (isOpenTag && node.children && node.children[0] && !ret) {
                 node = node.children[0];
                 //isOpenTag = true;
-                ret = callback.call(scope, node, true, 'firstChild');
-            } else if (node.next && node !== ancestor && ret !== 'break') {
-                if (isOpenTag) {
-                    callback.call(scope, node, false, 'current');
-                }
-                node = node.next;
-                isOpenTag = true;
-                ret = callback.call(scope, node, true, 'nextSibling');
-            } else if (node.parent && node !== ancestor) {
-                if (isOpenTag) {
-                    callback.call(scope, node, false, 'current');
-                }
-                //Traverse up the dom till you find an element with nextSibling
-                node = node.parent;
-                isOpenTag = false;
-                ret = callback.call(scope, node, false, 'parentNode');
+                ret = callback.call(scope, node, isOpenTag, 'firstChild');
             } else {
-                node = null;
+                if (isOpenTag) { //If last traversed was an open tag, then first close it.
+                    callback.call(scope, node, false, 'current');
+                }
+
+                if (node.next && node !== ancestor && ret !== 'break') {
+                    node = node.next;
+                    isOpenTag = true;
+                    ret = callback.call(scope, node, isOpenTag, 'nextSibling');
+                } else if (node.parent && node !== ancestor) {
+                    //Traverse up the dom till you find an element with nextSibling
+                    node = node.parent;
+                    isOpenTag = false;
+                    ret = callback.call(scope, node, isOpenTag, 'parentNode');
+                } else {
+                    node = null;
+                }
             }
         } while (node && ret !== 'return');
         return node || null;
