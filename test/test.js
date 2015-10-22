@@ -2,7 +2,7 @@
 
 var assert = require("assert"),
     fs = require('fs'),
-    Htmlizer = require('../src/Htmlizer2.js'),
+    Htmlizer = require('../src/Htmlizer.js'),
     jsdom = require('jsdom').jsdom,
     document = jsdom(),
     window = document.parentWindow,
