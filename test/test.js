@@ -64,9 +64,7 @@ describe('run binding context test', function () {
     });
 });
 
-
-
-describe('run disable,enablemchecked and value binding test', function () {
+describe('run disable,enable,checked and value binding test', function () {
     var html = util.fetch('test/misc-attr-binding-tpl.html'),
         outputHtml = (new Htmlizer(html)).toString({}),
         df = util.htmlToDocumentFragment(outputHtml);
@@ -88,6 +86,14 @@ describe('run disable,enablemchecked and value binding test', function () {
 });
 
 require('./no-conflict/test.js')(Htmlizer, assert, util);
+
+describe('run keepKOBindings test', function () {
+    var tpl = '<span data-bind="text: \'hi\', custom: \'binding\'"></span><!-- ko text: "hi" --><!-- /ko -->';
+        outputHtml = (new Htmlizer(tpl, {keepKOBindings:true})).toString({});
+    it('should keep data-bind attribute, ko comments and also render known bindings', function () {
+        assert.equal('<span data-bind="text: \'hi\', custom: \'binding\'">hi</span><!--  ko text: "hi"  -->hi<!--  /ko  -->', outputHtml);
+    });
+});
 
 describe('run template binding test', function () {
     var html = util.fetch('test/template-tpl.html'),

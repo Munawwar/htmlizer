@@ -47,7 +47,8 @@
      * @param {Object} cfg
      * @param {Document} cfg.document Only used in NodeJS to make the 'template' binding work. If template isn't a complete document,
      *  then provide a HTMLDocument that contains script tags that the 'template' binding can use.
-     * @param {Object} cfg.noConflict Will ensure Htmlizer doesn't conflict with KnockoutJS. i.e data-htmlizer attribute will be used and
+     * @param {Boolean} cfg.noConflict Will ensure Htmlizer doesn't conflict with KnockoutJS. i.e data-htmlizer attribute will be used and
+     * @param {Boolean} cfg.keepKOBindings Will ensure data-bind attribute and ko prefixed comment statements aren't removed.
      * containerless statements beginning and ending with "ko" prefix will be ignored.
      */
     function Htmlizer(template, cfg) {
@@ -182,7 +183,11 @@
                     }, {tag: node.name});
 
                     var bindOpts = node.attribs[this.noConflict ? 'data-htmlizer' : 'data-bind'];
-                    delete node.attribs[this.noConflict ? 'data-htmlizer' : 'data-bind'];
+                    if (this.noConflict) {
+                        delete node.attribs['data-htmlizer'];
+                    } else if (!this.keepKOBindings) {
+                        delete node.attribs['data-bind'];
+                    }
 
                     if (bindOpts) {
                         var conflict = [];
@@ -504,11 +509,15 @@
                     var stmt = node.data.trim(), blockNodes;
 
                     //Ignore all containerless statements beginning with "ko" if noConflict = true.
-                    if (this.noConflict && (/^(ko |\/ko$)/).test(stmt)) {
-                        funcBody += CODE(function (output, comment) {
-                            output += '<!-- ' + $$(comment) + ' -->';
-                        }, {comment: node.data});
-                        return;
+                    if ((/^(ko |\/ko$)/).test(stmt)) {
+                        if (this.noConflict || this.keepKOBindings) {
+                            funcBody += CODE(function (output, comment) {
+                                output += '<!-- ' + $$(comment) + ' -->';
+                            }, {comment: node.data});
+                        }
+                        if (this.noConflict) {
+                            return;
+                        }
                     }
 
                     //Convert ifnot: (...) to if: !(...)
@@ -576,6 +585,11 @@
                         }, {expr: match[2]});
 
                         ignoreTill = block.end;
+                    }
+                    if (this.keepKOBindings) {
+                        funcBody += CODE(function (output, comment) {
+                            output += '<!-- ' + $$(comment) + ' -->';
+                        }, {comment: ignoreTill.data});
                     }
                 } else if (node.type === 'script' || node.type === 'style') {
                     //TODO: Write test for text script and style tags
