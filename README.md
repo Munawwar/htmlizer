@@ -1,30 +1,30 @@
 Htmlizer
 ========
 
-Generate HTML (fragments) with Templates that are valid HTML (fragments).
+Generate HTML with templates that are valid HTML.
 
+`npm install htmlizer`
 
-Client side dependencies:
-- jQuery
-- https://github.com/mbest/js-object-literal-parse (this is in the src/ folder)
+### Why?
 
-On NodeJS: Just do `npm install htmlizer`.
-
-Why?
------
 Most templating languages doesn't ensure that the templates are valid HTML. Templates needs to be parsable for build tools like assetgraph-builder to able to 1. find assets (like images) for optimization 2. Translate text with their [data-i18n](https://github.com/assetgraph/assetgraph-builder#html-i18n-syntax) syntax.
 
 For example consider this Mustache template: `<div {{attributes}}></div>`.
 This looks sane, but is unfortunately not parsable by most HTML parsers.
 
-Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid CSS syntax and some parsers may throw an error.
+Here is another example: `<div style="{{style}}"></div>`. Even though this is parsable, the text inside the style attribute is not valid CSS syntax and some parsers or server-side DOM libraries (used within build tools) could throw errors.
 
-What's new in v2
-================
-Performance improvement
------------------------
-With v2, to speed up performance on nodejs, jsdom as a dependency has been removed and it instead compiles templates into JS functions to generate the output.
-v2 only supports server-side rendering (unlike v1).
+### How?
+
+The solution here is to use template syntax similar to KnockoutJS (in fact supports a subset of Knockout bindings).
+
+Hence other use cases include, partially rendering a KO web page/app on the server-side for SEO purposes. 
+
+## What's new in v2
+
+### Performance improvement
+
+With v2, to speed up performance on nodejs, jsdom as a dependency has been removed and htmlizer instead compiles templates into JS functions to generate the output. v2 only supports server-side rendering (unlike v1).
 
 The following are some of the implications due to this change:
 
