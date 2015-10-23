@@ -252,7 +252,7 @@ To make template work one must add the sub-templates to config as follows.
 
 #### Binding Contexts
 
-Supports all the binding contexts documented for KO 3.0 [here](http://knockoutjs.com/documentation/binding-context.html).
+Supports all but $element binding contexts documented for KO 3.0 [here](http://knockoutjs.com/documentation/binding-context.html).
 
 ```
 Template:
