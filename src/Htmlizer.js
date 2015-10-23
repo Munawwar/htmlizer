@@ -135,6 +135,7 @@
 
             //Start generating the toString() method of this instance.
             var funcBody = CODE(function (data, context) {
+                if (data === undefined) {data = {};}
                 if (!context) {
                     context = {
                         $parents: [],
