@@ -302,3 +302,10 @@ By default noConflict is assumed false. With noConflict = true, there are two ma
 
 - Bindings must be placed within data-htmlizer attribute.
 - Containerless statements with "ko" prefix will be ignored. Use "hz" prefix if you want Htmlizer to process it.
+
+Keep KO bindings
+-----
+For certain use cases (like for SEO purpose without user agent sniffing), one would like to keep the bindings with the rendered output, so that KO on the client side can rewrite them. To keep KO bindings, set keepKOBindings config to true:
+```
+var template = new Htmlizer('<template string>', {keepKOBindings: true});
+```
