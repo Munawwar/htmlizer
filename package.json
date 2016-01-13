@@ -1,7 +1,7 @@
 {
   "name": "htmlizer",
   "author": "munawwar",
-  "description": "HTML Templates",
+  "description": "HTML templates/KnockoutJS templates on node.js.",
   "version": "2.1.0",
   "main": "src/Htmlizer.js",
   "dependencies": {
