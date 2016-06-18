@@ -9,7 +9,7 @@
 (function (root, factory, saferEval) {
     if (typeof exports === 'object') {
         var jsdom = require('jsdom').jsdom,
-            window = jsdom('').parentWindow;
+            window = jsdom('').defaultView;
         module.exports = factory(
             saferEval,
             require('./jquery')(window),
@@ -66,6 +66,12 @@
         $.extend(this, cfg);
         if (typeof template === 'string') {
             this.origTplStr = template;
+            //Detect DOCTYPE
+            if (template.slice(0, 9).toLowerCase() === '<!doctype') {
+                var pos = template.indexOf('<', 1);
+                this.doctype = template.slice(0, pos);
+                template = template.slice(pos);
+            }
             this.frag = this.moveToNewFragment(this.parseHTML(template));
         } else { //assuming DocumentFragment
             this.frag = template;
@@ -485,7 +491,7 @@
                     html += '<!-- ' + node.data.trim() + ' -->';
                 }
             }, this);
-            return html;
+            return (this.doctype || '') + html;
         },
 
         /**
@@ -558,7 +564,13 @@
          * @private
          */
         parseHTML: function (html) {
-            return $.parseHTML(html, document, true);
+            if (html.indexOf('<html') === 0) {
+                var doc = document.implementation.createHTMLDocument("");
+                doc.documentElement.innerHTML = html.slice(html.indexOf('>') + 1, html.lastIndexOf('</html>'));
+                return this.slice(doc.children);
+            } else {
+                return $.parseHTML(html, document, true);
+            }
         },
 
         /**
@@ -698,7 +710,7 @@
     if (arguments.length === 4) {
         try {
             return (new Function('$context', '$data', '$element', 'with($context){with($data){return ' + arguments[0] + '}}'))(arguments[1] || {}, arguments[2] || {}, arguments[3]);
-        } catch (e) {console.log('Htmlizer expression ' + e);}
+        } catch (e) {console.warn('Htmlizer expression ' + e);}
     } else {
         throw new Error('Expression evaluator needs at least 4 arguments.');
     }

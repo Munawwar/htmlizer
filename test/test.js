@@ -365,6 +365,14 @@ describe('run template binding test', function () {
     });
 });
 
+describe('run complete document parsing test', function () {
+    var html = fetch('test/full-document.html'),
+        outputHtml = (new Htmlizer(html)).toString();
+    it('markup should be as expected', function () {
+        assert.equal(outputHtml, '<!DOCTYPE html>\n<html><head></head><body>Test</body></html>');
+    });
+});
+
 /*Utility functions*/
 function fetch(pathToTextFile) {
     return fs.readFileSync(pathToTextFile, {encoding: 'utf8'});
@@ -372,7 +380,7 @@ function fetch(pathToTextFile) {
 
 function htmlToDocumentFragment(html) {
     var document = jsdom(),
-        window = document.parentWindow,
+        window = document.defaultView,
         jquery = jqueryFactory(window),
         df = document.createDocumentFragment();
     jquery.parseHTML(html).forEach(function (node) {
