@@ -18,6 +18,8 @@ require('./html/test.js')(Htmlizer, assert, util);
 
 require('./if/test.js')(Htmlizer, assert, util);
 
+require('./svg/test.js')(Htmlizer, assert, util);
+
 require('./foreach/test.js')(Htmlizer, assert, util);
 
 require('./foreach-and-attr/test.js')(Htmlizer, assert, util);
