@@ -1,5 +1,5 @@
 module.exports = function (Htmlizer, assert, util) {
-    describe('run inline "foreach" statement test', function () {
+    describe('run inline "foreach" binding test', function () {
         var html = util.fetch('test/foreach/foreach-inline-tpl.html'),
             outputHtml = (new Htmlizer(html)).toString({
                 items: ['item1', 'item2', 'item3']
@@ -10,7 +10,7 @@ module.exports = function (Htmlizer, assert, util) {
         });
     });
 
-    describe('run container-less "foreach" statement test', function () {
+    describe('run container-less "foreach" binding test', function () {
         var html = util.fetch('test/foreach/foreach-comment-tpl.html'),
             outputHtml = (new Htmlizer(html)).toString({
                 items: [{
@@ -32,7 +32,7 @@ module.exports = function (Htmlizer, assert, util) {
         });
     });
 
-    describe('container-less foreach', function () {
+    describe('run container-less foreach markup check', function () {
         it('should not render end tags for each ancestor', function () {
             var html = util.fetch('test/foreach/foreach-containerless.html'),
                 outputHtml = new Htmlizer(html).toString({
@@ -51,6 +51,17 @@ module.exports = function (Htmlizer, assert, util) {
                 '    </body>\n' +
                 '</html>\n'
             );
+        });
+    });
+
+    describe('run foreach $index context test', function () {
+        var html = util.fetch('test/foreach/foreach-index-tpl.html'),
+            outputHtml = (new Htmlizer(html)).toString({
+                items: ['item1', 'item2', 'item3']
+            }),
+            df = util.htmlToDocumentFragment(outputHtml);
+        it('it should have 7 HTMLElements', function () {
+            assert.equal(7, util.countElements(df));
         });
     });
 };

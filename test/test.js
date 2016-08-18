@@ -20,8 +20,6 @@ require('./if/test.js')(Htmlizer, assert, util);
 
 require('./foreach/test.js')(Htmlizer, assert, util);
 
-require('./foreach-and-attr/test.js')(Htmlizer, assert, util);
-
 require('./css-and-style/test.js')(Htmlizer, assert, util);
 
 require('./with/test.js')(Htmlizer, assert, util);
