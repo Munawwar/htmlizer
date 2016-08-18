@@ -16,6 +16,18 @@ module.exports = function (Htmlizer, assert, util) {
         it('it should also have title = "abc &quot; def"', function () {
             assert.equal('abc " def', df.firstChild.getAttribute('title'));
         });
+        it('it should also have foo = "null"', function () {
+            assert.equal(null, df.firstChild.getAttribute('foo'));
+        });
+        it('it should also have bar = "undefined"', function () {
+            assert.equal(undefined, df.firstChild.getAttribute('bar'));
+        });
+        it('it should also have baz = "0"', function () {
+            assert.equal('0', df.firstChild.getAttribute('baz'));
+        });
+        it('it should also have quux = "true"', function () {
+            assert.equal('true', df.firstChild.getAttribute('quux'));
+        });
     });
 
     describe('run text binding on top-level test', function () {
