@@ -18,6 +18,14 @@ module.exports = function (Htmlizer, assert, util) {
         });
     });
 
+    describe('test attr binding with newlines and tabs', function () {
+        var html = util.fetch('test/text-and-attr/attr-newline-tpl.html'),
+            outputHtml = (new Htmlizer(html)).toString({});
+        it('output attribute should retain newlines and tabs', function () {
+            assert.equal(outputHtml, '<path d="M125,149.4L54.4,78.8c-4-4-10.5-4-14.6,0c-4,4-4,10.5,0,14.6l77.9,77.9c4,4,10.5,4,14.6,0l77.9-77.9c2-2,3-\n\t4.7,3-7.3s-1-5.3-3-7.3c-4-4-10.5-4-14.6,0L125,149.4z"></path>\n');
+        });
+    });
+
     describe('run text binding on top-level test', function () {
         it('should render the end tag when there is a text binding on the top level element', function () {
             assert.equal(new Htmlizer('<b data-bind="text: name">bogus</b>').toString({ name: 'foo' }), '<b>foo</b>');

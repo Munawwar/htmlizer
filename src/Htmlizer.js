@@ -313,7 +313,6 @@
                                 binding: 'style',
                                 value: {}
                             };
-
                             conditionalAttributes.style.value.display = '(' + value + ') ? null : "none"';
                         }
 
@@ -330,7 +329,7 @@
                     Object.keys(attributes).forEach(function (attr) {
                         if (typeof node.attribs[attr] === 'string') {
                             var value = this.generateAttribute(node.attribs[attr]);
-                            if (conditionalAttributes[attr]) {
+                            if (conditionalAttributes[attr]) { //TODO: Add tests for this.
                                 value = value.slice(0, -1); //Remove quote
                             }
 
@@ -946,7 +945,7 @@
 
         generateAttribute: function (val) {
             val = this.htmlEncode(val).replace(/"/g, '&quot;');
-            return JSON.stringify(val); //Escape \n\r etc with JSON.stringify
+            return '"' + val + '"';
         },
 
         functionGenerator: functionGenerator,
