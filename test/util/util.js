@@ -1,7 +1,7 @@
 var fs = require('fs'),
     jsdom = require('jsdom').jsdom,
-    document = jsdom(),
-    window = document.parentWindow,
+    document = jsdom(''),
+    window = document.defaultView,
     jquery = require('./jquery.js')(window);
 
 var util = {
