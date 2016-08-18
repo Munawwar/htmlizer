@@ -59,8 +59,11 @@
         if (typeof template === 'string') {
             this.origTplStr = template;
             this.frag = this.parseHTML(template);
-        } else { //assuming DomHandlerFragment
-            this.frag = template;
+        } else if (Array.isArray(template)) { //assuming Array of nodes
+            this.frag = this.makeNewFragment(template); //make copy of nodes, detached from their
+            //parents so as to not confuse node traversal logic.
+        } else {
+            throw new Error('Invalid template');
         }
         this.init();
     }
@@ -854,7 +857,7 @@
             var children = startNode.parent ?  startNode.parent.children : frag,
                 startPos = children.indexOf(startNode),
                 endPos = children.indexOf(endNode);
-            return this.makeNewFragment(children.slice(startPos + 1, endPos));
+            return children.slice(startPos + 1, endPos);
         },
 
         /**
