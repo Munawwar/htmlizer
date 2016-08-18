@@ -946,7 +946,7 @@
 
         generateAttribute: function (val) {
             val = this.htmlEncode(val).replace(/"/g, '&quot;');
-            return JSON.stringify(val); //Escape \n\r etc with JSON.stringify
+            return '"' + val + '"'; // Quote the attribute value, so we don't need to escape newlines etc.
         },
 
         functionGenerator: functionGenerator,
