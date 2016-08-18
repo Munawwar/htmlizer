@@ -5,8 +5,8 @@ module.exports = function (Htmlizer, assert, util) {
                 items: ['item1', 'item2', 'item3']
             }),
             df = util.htmlToDocumentFragment(outputHtml);
-        it('it should have 4 HTMLElements', function () {
-            assert.equal(4, util.countElements(df));
+        it('it should have 7 HTMLElements', function () {
+            assert.equal(7, util.countElements(df));
         });
     });
 };

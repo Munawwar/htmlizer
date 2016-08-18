@@ -381,7 +381,7 @@
                                     Object.keys(conditionalStyles).forEach(function (prop) {
                                         val = this.exprEvaluator(conditionalStyles[prop], context, data) || null;
                                         if (val || typeof val === 'string' || typeof val === 'number') {
-                                            output += prop + ':' + val.replace(/"/g, '\\"') + '; ';
+                                            output += prop + ':' + (val + '').replace(/"/g, '\\"') + '; ';
                                         }
                                     }, this);
 
@@ -631,7 +631,7 @@
             attr: function (attr, expr, context, data) {
                 var val = this.exprEvaluator(expr, context, data);
                 if (val || typeof val === 'string' || typeof val === 'number') {
-                    return " " + attr + '=' + this.generateAttribute(val);
+                    return " " + attr + '=' + this.generateAttribute(val + '');
                 } else {
                     //else if undefined, null, false then don't render attribute.
                     return '';
@@ -732,7 +732,7 @@
                 if (val === null || val === undefined) {
                     return '';
                 } else {
-                    return ' value=' + this.generateAttribute(val);
+                    return ' value=' + this.generateAttribute(val + '');
                 }
             }
         },
