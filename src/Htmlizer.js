@@ -164,7 +164,7 @@
                 }
 
                 if (!isOpenTag) {
-                    if (node.type === 'tag' && !voidTags[node.name]) {
+                    if ((node.type === 'tag'  || node.type === 'script' || node.type === 'style') && !voidTags[node.name]) {
                         //Generate closing tag
                         funcBody += CODE(function (output, tag) {
                             output += '</' + $$(tag) + '>';
@@ -176,10 +176,16 @@
                 var val, match, tempFrag, inner;
                 if (node.type === 'text') {
                     //TODO: Write test for text htmlEncode
-                    funcBody += CODE(function (text, output) {
-                        output += this.htmlEncode($$(text));
-                    }, {text: node.data});
-                } else if (node.type === 'tag') {
+                    if (node.parent && (node.parent.type === 'script' || node.parent.type === 'style')) {
+                        funcBody += CODE(function (text, output) {
+                            output += $$(text);
+                        }, {text: node.data});
+                    } else {
+                        funcBody += CODE(function (text, output) {
+                            output += this.htmlEncode($$(text));
+                        }, {text: node.data});
+                    }
+                } else if (node.type === 'tag' || node.type === 'script' || node.type === 'style') {
                     //Generate open tag (without attributes and >)
                     funcBody += CODE(function (output, tag) {
                         output += '<' + $$(tag);
