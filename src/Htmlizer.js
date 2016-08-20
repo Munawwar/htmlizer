@@ -53,9 +53,7 @@
      */
     function Htmlizer(template, cfg) {
         this.cfg = cfg || {};
-        Object.keys(this.cfg).forEach(function (k) {
-            this[k] = this.cfg[k];
-        }, this);
+        Object.assign(this, this.cfg);
         if (typeof template === 'string') {
             this.origTplStr = template;
             this.frag = this.parseHTML(template);
@@ -163,8 +161,10 @@
                     return;
                 }
 
+                var isTag = (node.type === 'tag'  || node.type === 'script' || node.type === 'style');
+
                 if (!isOpenTag) {
-                    if ((node.type === 'tag'  || node.type === 'script' || node.type === 'style') && !voidTags[node.name]) {
+                    if (isTag && !voidTags[node.name]) {
                         //Generate closing tag
                         funcBody += CODE(function (output, tag) {
                             output += '</' + $$(tag) + '>';
@@ -175,17 +175,18 @@
 
                 var val, match, tempFrag, inner;
                 if (node.type === 'text') {
-                    //TODO: Write test for text htmlEncode
+                    //No need to escape text inside script or style tag.
                     if (node.parent && (node.parent.type === 'script' || node.parent.type === 'style')) {
                         funcBody += CODE(function (text, output) {
                             output += $$(text);
                         }, {text: node.data});
                     } else {
+                        //TODO: Write test for text htmlEncode
                         funcBody += CODE(function (text, output) {
                             output += this.htmlEncode($$(text));
                         }, {text: node.data});
                     }
-                } else if (node.type === 'tag' || node.type === 'script' || node.type === 'style') {
+                } else if (isTag) {
                     //Generate open tag (without attributes and >)
                     funcBody += CODE(function (output, tag) {
                         output += '<' + $$(tag);
@@ -599,14 +600,6 @@
                             output += '<!-- ' + $$(comment) + ' -->';
                         }, {comment: ignoreTill.data});
                     }
-                } else if (node.type === 'script' || node.type === 'style') {
-                    //TODO: Write test for text script and style tags
-                    //No need to escape text inside script or style tag.
-                    var html = this.vdomToHtml([node]);
-                    funcBody += CODE(function (doctype, output) {
-                        output += $$(html);
-                    }, {html: html});
-                    return 'continue';
                 } else if (node.type === 'directive') {
                     funcBody += CODE(function (doctype, output) {
                         output += '<' + $$(doctype) + '>';

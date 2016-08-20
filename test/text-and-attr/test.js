@@ -35,7 +35,7 @@ module.exports = function (Htmlizer, assert, util) {
                 "<style>.foo { display: inline-block; }</style>\n" +
                 "<script>var foo = 'bar';</script>\n" +
                 "<script><div></div></script>\n" +
-                "<div>hello</div>");
+                "<div>hello</div>\n");
         });
     });
 
