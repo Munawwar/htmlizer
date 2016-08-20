@@ -2,7 +2,7 @@
   "name": "htmlizer",
   "author": "munawwar",
   "description": "HTML templates/KnockoutJS templates on node.js.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "main": "src/Htmlizer.js",
   "dependencies": {
     "cssom": "0.3.0",
