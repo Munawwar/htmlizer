@@ -53,7 +53,9 @@
      */
     function Htmlizer(template, cfg) {
         this.cfg = cfg || {};
-        Object.assign(this, this.cfg);
+        Object.keys(this.cfg).forEach(function (k) {
+            this[k] = this.cfg[k];
+        }, this);
         if (typeof template === 'string') {
             this.origTplStr = template;
             this.frag = this.parseHTML(template);
