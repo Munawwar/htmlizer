@@ -8,7 +8,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 2 HTMLElements', function () {
-            assert.equal(2, util.countElements(df));
+            assert.strictEqual(2, util.countElements(df));
         });
     });
 
@@ -20,10 +20,10 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 3 HTMLElements', function () {
-            assert.equal(3, util.countElements(df));
+            assert.strictEqual(3, util.countElements(df));
         });
         it('button element should have text in it', function () {
-            assert.equal('Howdy!', util.findElementByClassName(df, 'btn').firstChild.nodeValue);
+            assert.strictEqual('Howdy!', util.findElementByClassName(df, 'btn').firstChild.nodeValue);
         });
     });
 
@@ -35,7 +35,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 1 HTMLElement', function () {
-            assert.equal(1, util.countElements(df));
+            assert.strictEqual(1, util.countElements(df));
         });
     });
 
@@ -47,7 +47,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 1 HTMLElements', function () {
-            assert.equal(1, util.countElements(df));
+            assert.strictEqual(1, util.countElements(df));
         });
     });
 };

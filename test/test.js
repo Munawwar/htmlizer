@@ -8,7 +8,7 @@ describe('with void elements', function () {
     var html = '<hr><div>foo</div><br>',
         outputHtml = (new Htmlizer(html)).toString();
     it('it should serialize without an end tag and the self-closing slash marker', function () {
-        assert.equal(outputHtml, html);
+        assert.strictEqual(outputHtml, html);
     });
 });
 
@@ -42,22 +42,22 @@ describe('run binding context test', function () {
             count += 1;
             if (count >= 1 && count <= 2) {
                 it('span ' + count + ' text should be "item1"', function () {
-                    assert.equal('item1', node.textContent);
+                    assert.strictEqual('item1', node.textContent);
                 });
             }
             if (count === 3) {
                 it('span 4 text should be "0"', function () {
-                    assert.equal('0', node.textContent);
+                    assert.strictEqual('0', node.textContent);
                 });
             }
             if (count >= 4 && count <= 5) {
                 it('span ' + count + ' text should be "subitem1"', function () {
-                    assert.equal('subitem1', node.textContent);
+                    assert.strictEqual('subitem1', node.textContent);
                 });
             }
             if (count === 6) {
                 it('span 6 text should be "true"', function () {
-                    assert.equal('true', node.textContent);
+                    assert.strictEqual('true', node.textContent);
                 });
             }
         }
@@ -69,19 +69,19 @@ describe('run disable,enable,checked and value binding test', function () {
         outputHtml = (new Htmlizer(html)).toString({}),
         df = util.htmlToDocumentFragment(outputHtml);
     it('first child should have disabled="disabled"', function () {
-        assert.equal('disabled', df.children[0].getAttribute('disabled'));
+        assert.strictEqual('disabled', df.children[0].getAttribute('disabled'));
     });
     it('second child should also have disabled="disabled"', function () {
-        assert.equal('disabled', df.children[1].getAttribute('disabled'));
+        assert.strictEqual('disabled', df.children[1].getAttribute('disabled'));
     });
     it('third child should have checked="checked"', function () {
-        assert.equal('checked', df.children[2].getAttribute('checked'));
+        assert.strictEqual('checked', df.children[2].getAttribute('checked'));
     });
     it('fourth child should also have value="Hi"', function () {
-        assert.equal('Hi', df.children[3].getAttribute('value'));
+        assert.strictEqual('Hi', df.children[3].getAttribute('value'));
     });
     it('fifth child should also have display none', function () {
-        assert.equal('none', df.children[4].style.display);
+        assert.strictEqual('none', df.children[4].style.display);
     });
 });
 
@@ -91,7 +91,7 @@ describe('run keepKOBindings test', function () {
     var tpl = '<span data-bind="text: \'hi\', custom: \'binding\'"></span><!-- ko text: "hi" --><!-- /ko -->';
         outputHtml = (new Htmlizer(tpl, {keepKOBindings:true})).toString({});
     it('should keep data-bind attribute, ko comments and also render known bindings', function () {
-        assert.equal('<span data-bind="text: \'hi\', custom: \'binding\'">hi</span><!--  ko text: "hi"  -->hi<!--  /ko  -->', outputHtml);
+        assert.strictEqual('<span data-bind="text: \'hi\', custom: \'binding\'">hi</span><!--  ko text: "hi"  -->hi<!--  /ko  -->', outputHtml);
     });
 });
 
@@ -109,13 +109,13 @@ describe('run template binding test', function () {
         }),
         df = util.htmlToDocumentFragment(outputHtml);
     it('div should have h3 tag', function () {
-        assert.equal('H3', df.firstChild.children[0].tagName);
+        assert.strictEqual('H3', df.firstChild.children[0].tagName);
     });
     it('h3 should have text as "Franklin"', function () {
-        assert.equal('Franklin', df.firstChild.children[0].firstChild.nodeValue);
+        assert.strictEqual('Franklin', df.firstChild.children[0].firstChild.nodeValue);
     });
     it('foreach test: second div should have h3 with text as "Franklin"', function () {
-        assert.equal('H3', df.children[1].children[0].tagName);
-        assert.equal('Franklin', df.children[1].children[0].firstChild.nodeValue);
+        assert.strictEqual('H3', df.children[1].children[0].tagName);
+        assert.strictEqual('Franklin', df.children[1].children[0].firstChild.nodeValue);
     });
 });

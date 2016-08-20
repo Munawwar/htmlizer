@@ -6,7 +6,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 3 HTMLElements', function () {
-            assert.equal(3, util.countElements(df));
+            assert.strictEqual(3, util.countElements(df));
         });
     });
     describe('run container-less html binding test', function () {
@@ -16,7 +16,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 2 HTMLElements', function () {
-            assert.equal(2, util.countElements(df));
+            assert.strictEqual(2, util.countElements(df));
         });
     });
 };

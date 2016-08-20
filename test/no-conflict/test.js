@@ -27,19 +27,19 @@ module.exports = function (Htmlizer, assert, util) {
         });
 
         it('it should have 2 comment statements', function () {
-            assert.equal(true, countComments === 2);
+            assert.strictEqual(true, countComments === 2);
         });
         it('both having "ko" prefix', function () {
-            assert.equal(true, commentIsKOStmt);
+            assert.strictEqual(true, commentIsKOStmt);
         });
         it('it should have 2 buttons', function () {
-            assert.equal(2, btnCount);
+            assert.strictEqual(2, btnCount);
         });
         it('of which first button shouldn\'t have data-htmlizer attribute', function () {
-            assert.equal(true, firstBtnHasNoDataHtmlizer);
+            assert.strictEqual(true, firstBtnHasNoDataHtmlizer);
         });
         it('and second button should have data-bind attribute', function () {
-            assert.equal(true, secondBtnHasDataBind);
+            assert.strictEqual(true, secondBtnHasDataBind);
         });
     });
 
@@ -51,10 +51,10 @@ module.exports = function (Htmlizer, assert, util) {
             df = util.htmlToDocumentFragment(outputHtml);
 
         it('it should have a class = "btn"', function () {
-            assert.equal('btn', df.firstChild.getAttribute('class'));
+            assert.strictEqual('btn', df.firstChild.getAttribute('class'));
         });
         it('it should have a data-bind attribute = {text:btnText}', function () {
-            assert.equal('{text:btnText}', df.firstChild.getAttribute('data-bind'));
+            assert.strictEqual('{text:btnText}', df.firstChild.getAttribute('data-bind'));
         });
     });
     describe('run no conflict sub-template test', function () {
@@ -75,7 +75,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 6 HTMLElements', function () {
-            assert.equal(6, util.countElements(df));
+            assert.strictEqual(6, util.countElements(df));
         });
     });
 };

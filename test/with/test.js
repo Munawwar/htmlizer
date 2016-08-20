@@ -15,7 +15,7 @@ module.exports = function (Htmlizer, assert, util) {
             }
         });
         it('it should have 4 SPANs with "10" as text content', function () {
-            assert.equal(4, count);
+            assert.strictEqual(4, count);
         });
     });
 
@@ -35,7 +35,7 @@ module.exports = function (Htmlizer, assert, util) {
             }
         });
         it('it should have 4 SPANs with "10" as text content', function () {
-            assert.equal(4, count);
+            assert.strictEqual(4, count);
         });
     });
 };

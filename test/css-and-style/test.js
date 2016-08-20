@@ -7,10 +7,10 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have class="warning"', function () {
-            assert.equal('warning', df.firstChild.className.trim());
+            assert.strictEqual('warning', df.firstChild.className.trim());
         });
         it('it should have style="font-weight: normal"', function () {
-            assert.equal('normal', df.firstChild.style.fontWeight);
+            assert.strictEqual('normal', df.firstChild.style.fontWeight);
         });
     });
 
@@ -21,7 +21,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have class="dynamicClass"', function () {
-            assert.equal('dynamicClass', df.firstChild.className.trim());
+            assert.strictEqual('dynamicClass', df.firstChild.className.trim());
         });
     });
 };

@@ -6,7 +6,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 4 HTMLElements', function () {
-            assert.equal(4, util.countElements(df));
+            assert.strictEqual(4, util.countElements(df));
         });
     });
 
@@ -28,7 +28,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 6 HTMLElements', function () {
-            assert.equal(6, util.countElements(df));
+            assert.strictEqual(6, util.countElements(df));
         });
     });
 
@@ -41,7 +41,7 @@ module.exports = function (Htmlizer, assert, util) {
                         { name: 'bar' }
                     ]
                 });
-            assert.equal(
+            assert.strictEqual(
                 outputHtml,
                 '<!DOCTYPE html>\n' +
                 '<html>\n' +
@@ -61,7 +61,7 @@ module.exports = function (Htmlizer, assert, util) {
             }),
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have 7 HTMLElements', function () {
-            assert.equal(7, util.countElements(df));
+            assert.strictEqual(7, util.countElements(df));
         });
     });
 };
