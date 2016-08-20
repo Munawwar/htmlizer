@@ -26,6 +26,19 @@ module.exports = function (Htmlizer, assert, util) {
         });
     });
 
+    describe('run data-bind:text on style and script tags test', function () {
+        var html = util.fetch('test/text-and-attr/style-script-text-binding-tpl.html'),
+            outputHtml = (new Htmlizer(html)).toString(),
+            df = util.htmlToDocumentFragment(outputHtml);
+        it('it should have executed text binding on style and script tag, and removed the "data-bind" attribute', function () {
+            assert.equal(outputHtml, "<script>foo;</script>\n" +
+                "<style>.foo { display: inline-block; }</style>\n" +
+                "<script>var foo = 'bar';</script>\n" +
+                "<script><div></div></script>\n" +
+                "<div>hello</div>");
+        });
+    });
+
     describe('run text binding on top-level test', function () {
         it('should render the end tag when there is a text binding on the top level element', function () {
             assert.equal(new Htmlizer('<b data-bind="text: name">bogus</b>').toString({ name: 'foo' }), '<b>foo</b>');
