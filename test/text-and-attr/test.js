@@ -32,6 +32,7 @@ module.exports = function (Htmlizer, assert, util) {
             df = util.htmlToDocumentFragment(outputHtml);
         it('it should have executed text binding on style and script tag, and removed the "data-bind" attribute', function () {
             assert.equal(outputHtml, "<script>foo;</script>\n" +
+                "<script>&lt;foo;&gt;</script>\n" +
                 "<style>.foo { display: inline-block; }</style>\n" +
                 "<script>var foo = 'bar';</script>\n" +
                 "<script><div></div></script>\n" +
