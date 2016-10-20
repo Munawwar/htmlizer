@@ -119,3 +119,29 @@ describe('run template binding test', function () {
         assert.strictEqual('Franklin', df.children[1].children[0].firstChild.nodeValue);
     });
 });
+
+describe('run containerless template binding test', function () {
+    var html = '<!-- ko template: { name: 'person-template', data: buyer } --><!-- /ko -->' +
+    '<!-- ko template: { name: 'person-template', foreach: [buyer] } --><!-- /ko -->';
+
+    var tpl = util.fetch('test/files/person-template.html');
+    var cfg = { templates: {"person-template": tpl} };
+    var outputHtml = (new Htmlizer(html, cfg)).toString({
+            buyer: {
+                name: 'Franklin',
+                credits: 250
+            }
+        });
+
+    var df = util.htmlToDocumentFragment(outputHtml);
+
+    it('div should have two h3 tag', function () {
+        assert.strictEqual(2, df.querySelectorAll('h3').length);
+    });
+    it('first h3 should have text as "Franklin"', function () {
+        assert.strictEqual('Franklin', df.querySelectorAll('h3')[0].innerHTML);
+    });
+    it('foreach test: second h3 with text as "Franklin"', function () {
+        assert.strictEqual('Franklin', df.querySelectorAll('h3')[1].innerHTML);
+    });
+})

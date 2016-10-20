@@ -36,7 +36,8 @@
         "foreach": new RegExp("((?:ko|hz)[ ]+foreach):(.+)"),
         "with": new RegExp("((?:ko|hz)[ ]+with):(.+)"),
         "text": new RegExp("((?:ko|hz)[ ]+text):(.+)"),
-        "html": new RegExp("((?:ko|hz)[ ]+html):(.+)")
+        "html": new RegExp("((?:ko|hz)[ ]+html):(.+)"),
+        "template": new RegExp("((?:ko|hz)[ ]+template):(.+)")
     };
 
     var conflictingBindings = unwrap('if,ifnot,foreach,text,html');
@@ -116,6 +117,11 @@
                     } else if ((match = stmt.match(syntaxRegex.html))) {
                         stack.unshift({
                             key: 'html',
+                            start: node
+                        });
+                    } else if ((match = stmt.match(syntaxRegex.template))) {
+                        stack.unshift({
+                            key: 'template',
                             start: node
                         });
                     } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
@@ -595,6 +601,24 @@
                             output += this.inlineBindings.html.call(this, $$(expr), context, data);
                         }, {expr: match[2]});
 
+                        ignoreTill = block.end;
+                    } else if ((match = stmt.match(syntaxRegex.template))) {
+                        val = this.parseObjectLiteral(match[2]);
+                        val.name = val.name.slice(1, -1);
+                        var tpl = (this.cfg.templates || {})[val.name];
+                        if (!tpl) {
+                            throw new Error("Template named '" + val.name + "' does not exist.");
+                        }
+
+                        block = this.findBlockFromStartNode(blocks, node);
+                        funcBody += CODE(function (data, tpl, context, output) {
+                            output += this.inlineBindings.template.call(this, $_(value), function (data, context) {
+                                $_(tpl);
+                            }, context, data);
+                        }, {
+                            tpl: funcToString((new Htmlizer(tpl, this.cfg)).toString),
+                            value: JSON.stringify(val)
+                        });
                         ignoreTill = block.end;
                     }
                     if (this.keepKOBindings) {
