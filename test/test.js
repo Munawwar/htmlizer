@@ -88,7 +88,7 @@ describe('run disable,enable,checked and value binding test', function () {
 require('./no-conflict/test.js')(Htmlizer, assert, util);
 
 describe('run keepKOBindings test', function () {
-    var tpl = '<span data-bind="text: \'hi\', custom: \'binding\'"></span><!-- ko text: "hi" --><!-- /ko -->';
+    var tpl = '<span data-bind="text: \'hi\', custom: \'binding\'"></span><!-- ko text: "hi" --><!-- /ko -->',
         outputHtml = (new Htmlizer(tpl, {keepKOBindings:true})).toString({});
     it('should keep data-bind attribute, ko comments and also render known bindings', function () {
         assert.strictEqual('<span data-bind="text: \'hi\', custom: \'binding\'">hi</span><!--  ko text: "hi"  -->hi<!--  /ko  -->', outputHtml);
@@ -121,8 +121,8 @@ describe('run template binding test', function () {
 });
 
 describe('run containerless template binding test', function () {
-    var html = '<!-- ko template: { name: 'person-template', data: buyer } --><!-- /ko -->' +
-    '<!-- ko template: { name: 'person-template', foreach: [buyer] } --><!-- /ko -->';
+    var html = '<!-- ko template: { name: "person-template", data: buyer } --><!-- /ko -->' +
+		'<!-- ko template: { name: "person-template", foreach: [buyer] } --><!-- /ko -->';
 
     var tpl = util.fetch('test/files/person-template.html');
     var cfg = { templates: {"person-template": tpl} };
@@ -144,4 +144,4 @@ describe('run containerless template binding test', function () {
     it('foreach test: second h3 with text as "Franklin"', function () {
         assert.strictEqual('Franklin', df.querySelectorAll('h3')[1].innerHTML);
     });
-})
+});
