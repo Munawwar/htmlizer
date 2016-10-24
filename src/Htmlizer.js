@@ -93,38 +93,13 @@
                         stmt = match[1].replace('ifnot', 'if') + ': !(' + match[2] + ')';
                     }
 
-                    //Process if statement
-                    if ((match = stmt.match(syntaxRegex['if']))) {
+                    //Note the nesting structure of comment bindings
+                    if ((match = stmt.match(/^(?:ko|hz)[ ]+(if|foreach|with|text|html|template):/))) {
                         stack.unshift({
-                            key: 'if',
+                            key: match[1],
                             start: node
                         });
-                    } else if ((match = stmt.match(syntaxRegex.foreach))) {
-                        stack.unshift({
-                            key: 'foreach',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex['with']))) {
-                        stack.unshift({
-                            key: 'with',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex.text))) {
-                        stack.unshift({
-                            key: 'text',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex.html))) {
-                        stack.unshift({
-                            key: 'html',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(syntaxRegex.template))) {
-                        stack.unshift({
-                            key: 'template',
-                            start: node
-                        });
-                    } else if ((match = stmt.match(/^\/(ko|hz)$/))) {
+                    } else if ((match = stmt.match(/^\/(ko|hz)$/))) { //close tag
                         block = stack.shift();
                         if (block) {
                             block.end = node;
