@@ -6,6 +6,7 @@ module.exports = function (Htmlizer, assert, util) {
                 templates: {"person-template": tpl}
             };
         var outputHtml = (new Htmlizer(html, cfg)).toString({
+                templateName: 'person-template',
                 buyer: {
                     name: 'Franklin',
                     credits: 250
@@ -31,6 +32,7 @@ module.exports = function (Htmlizer, assert, util) {
                 templates: {"person-template": tpl}
             };
         var outputHtml = (new Htmlizer(html, cfg)).toString({
+                templateName: 'person-template',
                 buyer: {
                     name: 'Franklin',
                     credits: 250
