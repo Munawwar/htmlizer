@@ -46,8 +46,8 @@
      * @param {String|DomHandlerFragment} template
      * DomHandlerFragment refers to the output of domhandler module on parsing html.
      * @param {Object} cfg
-     * @param {Document} cfg.document Only used in NodeJS to make the 'template' binding work. If template isn't a complete document,
-     *  then provide a HTMLDocument that contains script tags that the 'template' binding can use.
+     * @param {Object} cfg.templates Template names and the template strings, which 'template' binding can use. Each property should
+     * be the template name and the value should be the template string.
      * @param {Boolean} cfg.noConflict Will ensure Htmlizer doesn't conflict with KnockoutJS. i.e data-htmlizer attribute will be used and
      * @param {Boolean} cfg.keepKOBindings Will ensure data-bind attribute and ko prefixed comment statements aren't removed.
      * containerless statements beginning and ending with "ko" prefix will be ignored.
@@ -57,6 +57,7 @@
         Object.keys(this.cfg).forEach(function (k) {
             this[k] = this.cfg[k];
         }, this);
+
         if (typeof template === 'string') {
             this.origTplStr = template;
             this.frag = this.parseHTML(template);
@@ -66,6 +67,14 @@
         } else {
             throw new Error('Invalid template');
         }
+
+        var templates = this.cfg.templates || {};
+        delete this.cfg.templates; //Temporarily remove to avoid causing infinite construction loop.
+        Object.keys(templates).forEach(function (name) {
+            templates[name] = new Htmlizer(templates[name], this.cfg);
+        }, this);
+        this.cfg.templates = templates;
+
         this.init();
     }
 
@@ -475,18 +484,9 @@
 
                             if (binding === 'template') {
                                 val = this.parseObjectLiteral(value);
-                                val.name = val.name.slice(1, -1);
-                                var tpl = (this.cfg.templates || {})[val.name];
-                                if (!tpl) {
-                                    throw new Error("Template named '" + val.name + "' does not exist.");
-                                }
-
                                 funcBody += CODE(function (data, tpl, context, output) {
-                                    output += this.inlineBindings.template.call(this, $_(value), function (data, context) {
-                                        $_(tpl);
-                                    }, context, data);
+                                    output += this.inlineBindings.template.call(this, $_(value), context, data);
                                 }, {
-                                    tpl: funcToString((new Htmlizer(tpl, this.cfg)).toString),
                                     value: JSON.stringify(val)
                                 });
                                 ret = 'continue';
@@ -579,19 +579,10 @@
                         ignoreTill = block.end;
                     } else if ((match = stmt.match(syntaxRegex.template))) {
                         val = this.parseObjectLiteral(match[2]);
-                        val.name = val.name.slice(1, -1);
-                        var tpl = (this.cfg.templates || {})[val.name];
-                        if (!tpl) {
-                            throw new Error("Template named '" + val.name + "' does not exist.");
-                        }
-
                         block = this.findBlockFromStartNode(blocks, node);
                         funcBody += CODE(function (data, tpl, context, output) {
-                            output += this.inlineBindings.template.call(this, $_(value), function (data, context) {
-                                $_(tpl);
-                            }, context, data);
+                            output += this.inlineBindings.template.call(this, $_(value), context, data);
                         }, {
-                            tpl: funcToString((new Htmlizer(tpl, this.cfg)).toString),
                             value: JSON.stringify(val)
                         });
                         ignoreTill = block.end;
@@ -693,20 +684,24 @@
                 return output;
             },
 
-            template: function (value, tpl, context, data) {
+            template: function (value, context, data) {
                 var val = {
+                    name: this.exprEvaluator(value.name, context, data),
                     data: this.exprEvaluator(value.data, context, data),
                     if: value['if'] ? this.exprEvaluator(value['if'], context, data) : true,
                     foreach: this.exprEvaluator(value.foreach, context, data),
                     as: (value.as || '').slice(1, -1) //strip string quote
                 };
 
-                var output = '';
-                if (val['if']) {
+                var tpl = this.cfg.templates[val.name],
+                    output = '';
+                if (!tpl) {
+                    output = '<!-- Cannot find template named ' + val.name + ' -->';
+                } else if (val['if']) {
                     if (val.data || !(val.foreach instanceof Array)) {
-                        output = tpl.call(this, val.data || data, this.getNewContext(context, val.data || data));
+                        output = tpl.toString(val.data || data, this.getNewContext(context, val.data || data));
                     } else {
-                        output = this.executeForEach(tpl, context, data, val.foreach, val.as);
+                        output = this.executeForEach(tpl.toString, context, data, val.foreach, val.as);
                     }
                 }
                 return output;
